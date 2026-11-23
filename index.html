@@ -1,0 +1,1477 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>F1 Historic</title>
+<meta name="description" content="Storico completo dei risultati di Formula 1 dal 1950 a oggi">
+<meta name="theme-color" content="#171a21">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="F1 Historic">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/*
+VOICE: archivio tecnico da box F1, preciso e veloce.
+IDEA: il tabellone dei tempi in pit wall: righe fitte, numeri allineati, rosso solo dove conta.
+PICTURE: le tabelle stesse sono il contenuto; podio oro/argento/bronzo nelle celle.
+COLOUR and TYPE: carbonio scuro, rosso F1 #e10600 come accento; Titillium Web.
+LAYOUT: barra superiore con menu, contenuto a tutta larghezza, tabelle con colonne fisse.
+*/
+:root{--bg:#0f1115;--bg2:#171a21;--bg3:#1f232c;--line:#2a2f3a;--ink:#eef0f4;--mut:#8f97a8;--red:#e10600;--red2:#ff3b30;
+--gold:#d4a017;--silver:#a9b0bb;--bronze:#b8733d;--green:#2fb37a;--blue:#4a8fe7;--purple:#9b6bd6;--rowodd:#13161c;color-scheme:dark}
+:root[data-theme=light]{--bg:#f4f5f7;--bg2:#ffffff;--bg3:#eceef2;--line:#d9dce3;--ink:#15171c;--mut:#5d6575;--rowodd:#f8f9fb;color-scheme:light}
+*{box-sizing:border-box;min-width:0}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 'Titillium Web',system-ui,-apple-system,'Segoe UI',sans-serif}
+a{color:inherit}
+button,select,input{font:inherit;color:inherit}
+.top{position:sticky;top:0;z-index:50;padding-top:max(6px,env(safe-area-inset-top))!important;padding-left:max(14px,env(safe-area-inset-left))!important;padding-right:max(14px,env(safe-area-inset-right))!important;background:var(--bg2);border-bottom:3px solid var(--red);display:flex;align-items:center;gap:12px;padding:6px 14px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:19px;letter-spacing:.2px;text-decoration:none;white-space:nowrap}
+.brand b{background:var(--red);color:#fff;padding:0 7px;border-radius:3px;font-style:italic}
+nav.menu{display:flex;gap:2px;flex-wrap:wrap;flex:1}
+nav.menu a{padding:8px 10px;border-radius:6px;text-decoration:none;color:var(--mut);font-weight:600;white-space:nowrap;font-size:14px}
+nav.menu a:hover{color:var(--ink);background:var(--bg3)}
+nav.menu a.on{color:#fff;background:var(--red)}
+.menubtn{display:none;background:var(--bg3);border:1px solid var(--line);border-radius:8px;padding:8px 12px;cursor:pointer;font-weight:600}
+.syncchip{font-size:13px;color:var(--mut);display:flex;align-items:center;gap:8px;cursor:pointer;white-space:nowrap}
+.syncchip .bar{width:90px;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden}
+.syncchip .bar i{display:block;height:100%;background:var(--red);width:0}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block}
+.dot.run{background:var(--red);animation:pulse 1s infinite}.dot.err{background:#f5a623}
+@keyframes pulse{50%{opacity:.3}}
+@media(prefers-reduced-motion:reduce){.dot.run{animation:none}}
+@media(max-width:1100px){.menubtn{display:block}nav.menu{display:none;position:absolute;left:0;right:0;top:100%;background:var(--bg2);flex-direction:column;padding:8px;border-bottom:3px solid var(--red)}nav.menu.open{display:flex}nav.menu a{padding:12px}}
+main{padding:14px max(clamp(10px,2vw,24px),env(safe-area-inset-right)) max(30px,env(safe-area-inset-bottom)) max(clamp(10px,2vw,24px),env(safe-area-inset-left))}
+@media(display-mode:standalone){body{overscroll-behavior-y:none}}
+h1{font-size:clamp(24px,3vw,34px);line-height:1.1;margin:4px 0 12px}
+h2{font-size:20px;margin:18px 0 8px}
+h3{font-size:16px;margin:12px 0 6px}
+.mut{color:var(--mut)}.small{font-size:13px}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin-bottom:10px}
+.toolbar label{display:flex;align-items:center;gap:6px;color:var(--mut);font-size:14px}
+input[type=search],input[type=text],input[type=url],input[type=number],select{background:var(--bg2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:15px;min-height:38px}
+input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--red);outline-offset:1px}
+.btn{text-decoration:none;display:inline-block;background:var(--bg3);border:1px solid var(--line);border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:600;min-height:38px}
+.btn:hover{border-color:var(--mut)}
+.btn.pri{background:var(--red);border-color:var(--red);color:#fff}
+.btn.sm{padding:4px 9px;min-height:28px;font-size:13px}
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:12px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:14px}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--line);margin:8px 0 12px}
+.tabs button{background:none;border:0;border-bottom:3px solid transparent;padding:9px 12px;cursor:pointer;font-weight:600;color:var(--mut)}
+.tabs button.on{color:var(--ink);border-color:var(--red)}
+.scroll{overflow:auto;max-width:100%}
+table.t{border-collapse:separate;border-spacing:0;font-size:14px;width:max-content;min-width:100%}
+table.t th,table.t td{padding:5px 8px;border-bottom:1px solid var(--line);white-space:nowrap;text-align:left}
+table.t th{background:var(--bg3);position:sticky;top:0;z-index:2;font-weight:700;font-size:13px}
+table.t tbody tr:nth-child(even) td{background:var(--rowodd)}
+table.t td.n,table.t th.n{text-align:right;font-variant-numeric:tabular-nums}
+table.t td.c,table.t th.c{text-align:center}
+table.t .fz{position:sticky;left:0;z-index:1;background:var(--bg2)}
+table.t th.fz{z-index:3;background:var(--bg3)}
+table.t td.team{border-left:4px solid var(--red);font-weight:700;vertical-align:top;background:var(--bg2)!important}
+.lk{cursor:pointer;text-decoration:none;font-weight:600}
+.lk:hover{color:var(--red2);text-decoration:underline}
+/* celle risultato */
+.r{display:inline-block;min-width:30px;text-align:center;border-radius:4px;padding:1px 3px;font-weight:600;font-variant-numeric:tabular-nums}
+.r1{background:var(--gold);color:#111}.r2{background:var(--silver);color:#111}.r3{background:var(--bronze);color:#111}
+.rp{background:color-mix(in srgb,var(--green) 30%,transparent)}.rf{background:color-mix(in srgb,var(--blue) 22%,transparent)}
+.rr{background:color-mix(in srgb,var(--purple) 30%,transparent)}.rq{color:var(--mut)}.rd{background:#222;color:#fff}
+sup.m{font-size:9px;margin-left:1px;font-weight:700}
+.champ{color:var(--gold);font-weight:700}
+/* griglia virtuale */
+.vg{position:relative;overflow:auto;border:1px solid var(--line);border-radius:8px;background:var(--bg2)}
+.vg-head{position:sticky;top:0;z-index:5}
+.vg-hr{display:flex}
+.vg-h{flex:none;background:var(--bg3);border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:5px 6px;font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;user-select:none;text-align:center}
+.vg-h.fz{position:sticky;z-index:6;text-align:left}
+.vg-h.grp{font-size:14px;text-align:left;padding-left:10px;background:var(--bg2);border-right:2px solid var(--red)}
+.vg-h.s-asc::after{content:' ▲';color:var(--red2)}.vg-h.s-desc::after{content:' ▼';color:var(--red2)}
+.vg-body{position:relative}
+.vg-r{position:absolute;left:0;display:flex;width:100%}
+.vg-r.odd .vg-c{background:var(--rowodd)}
+.vg-r:hover .vg-c{background:var(--bg3)}
+.vg-c{flex:none;padding:0 6px;border-bottom:1px solid var(--line);border-right:1px solid color-mix(in srgb,var(--line) 50%,transparent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums;background:var(--bg2);font-size:13.5px}
+.vg-c.fz{position:sticky;z-index:2;justify-content:flex-start}
+.vg-c.l{justify-content:flex-start}
+.vg-c.ye,.vg-h.ye{border-right:2px solid var(--red)}
+.z{color:color-mix(in srgb,var(--mut) 60%,transparent)}
+/* anno */
+.years{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.years a{display:block;background:var(--bg2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;text-decoration:none}
+.years a:hover{border-color:var(--red)}
+.years b{font-size:22px;display:block;line-height:1.1}
+.years span{font-size:12px;color:var(--mut);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.yearhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ev{display:flex;gap:8px;align-items:baseline;padding:3px 0}
+.tag{font-size:11px;font-weight:700;padding:1px 7px;border-radius:10px;white-space:nowrap;background:var(--bg3);color:var(--mut)}
+.tag.title{background:var(--gold);color:#111}.tag.win{background:var(--red);color:#fff}.tag.team{background:var(--blue);color:#fff}.tag.pole{background:var(--purple);color:#fff}.tag.pod{background:var(--bronze);color:#111}.tag.rec{background:var(--green);color:#111}
+/* modale */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;display:none;align-items:flex-start;justify-content:center;padding:4vh 10px;overflow:auto}
+.modal.open{display:flex}
+.modal .box{background:var(--bg2);border:1px solid var(--line);border-top:4px solid var(--red);border-radius:10px;max-width:1100px;width:100%;padding:16px 18px;position:relative}
+.modal .x{position:absolute;right:10px;top:8px;font-size:26px;background:none;border:0;cursor:pointer;color:var(--mut);width:44px;height:44px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.chip{background:var(--bg3);border-radius:8px;padding:6px 10px;text-align:center;min-width:70px}
+.chip b{display:block;font-size:20px;line-height:1.1}.chip span{font-size:11px;color:var(--mut)}
+.banner{background:color-mix(in srgb,var(--red) 14%,var(--bg2));border:1px solid color-mix(in srgb,var(--red) 45%,transparent);border-radius:10px;padding:12px 14px;margin-bottom:12px}
+.prog{height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;margin:8px 0}.prog i{display:block;height:100%;background:var(--red)}
+.era{border-left:4px solid var(--red)}
+.era ul{margin:6px 0 0;padding-left:20px}
+.diff-up{color:var(--green);font-weight:700}.diff-dn{color:var(--red2);font-weight:700}
+tr.changed td{background:color-mix(in srgb,var(--gold) 14%,transparent)!important}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+@media(max-width:600px){table.t{font-size:13px}main{padding:10px 8px}}
+
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="#albo-piloti"><b>F1</b> Historic</a>
+  <button class="menubtn" id="menubtn" aria-label="Apri menu">Menu ▾</button>
+  <nav class="menu" id="nav"></nav>
+  <button class="btn sm pri" id="installBtn" hidden>Installa app</button>
+  <button class="btn sm pri" id="swUpd" hidden>Nuova versione: aggiorna</button>
+  <button class="btn sm" id="newdata" hidden>Nuovi dati: aggiorna vista</button>
+  <div class="syncchip" id="chip" title="Stato dei dati"></div>
+</header>
+<main id="main"></main>
+<div class="modal" id="modal"><div class="box" id="mbox"></div></div>
+<script>
+'use strict';
+{
+// ===================== REGOLAMENTI (contenuto statico) =====================
+const REG_ERAS = [
+  {from:1950,to:1953,title:'Le origini',items:[
+    'Motori: 4,5 L aspirati o 1,5 L sovralimentati (1950–51). Nel 1952–53 il Mondiale si corre con vetture di Formula 2 (2,0 L aspirati / 0,75 L sovralimentati).',
+    'Punti: 8-6-4-3-2 ai primi cinque + 1 punto al giro più veloce.',
+    'Contano solo i migliori 4 risultati della stagione.',
+    'Auto condivise: i punti vengono divisi tra i piloti che si alternano alla guida.',
+    'La 500 Miglia di Indianapolis è valida per il Mondiale piloti (fino al 1960).']},
+  {from:1954,to:1960,title:'Formula 2,5 litri',items:[
+    'Motori: 2,5 L aspirati o 0,75 L sovralimentati.',
+    'Punti: 8-6-4-3-2 + 1 al giro veloce (1954–59); nel 1960 8-6-4-3-2-1 senza punto per il giro veloce.',
+    'Migliori 5 risultati validi (1954–57), migliori 6 (1958–60).',
+    '1958: nasce la Coppa Costruttori; obbligo di benzina avio al posto delle miscele ad alcol; nessun punto per le auto condivise.']},
+  {from:1961,to:1965,title:'Formula 1,5 litri',items:[
+    'Motori: 1,5 L aspirati (minimo 1,3 L), senza sovralimentazione; peso minimo 450 kg.',
+    'Punti: 9-6-4-3-2-1 (la vittoria passa da 8 a 9 punti).',
+    'Migliori 5 risultati validi (1961–62), migliori 6 (1963–65).',
+    'Obbligatori motorino d\'avviamento, roll-bar e doppio circuito frenante.']},
+  {from:1966,to:1976,title:'Formula 3 litri',items:[
+    'Motori: 3,0 L aspirati o 1,5 L sovralimentati.',
+    'Punti: 9-6-4-3-2-1.',
+    'Scarti: nel 1966 migliori 5; dal 1967 la stagione è divisa in due metà e si contano i migliori risultati di ciascuna.',
+    '1968: arrivano gli sponsor commerciali e i primi alettoni.',
+    'Anni \'70: cinture, estintori, serbatoi deformabili e strutture di sicurezza diventano obbligatori.']},
+  {from:1977,to:1988,title:'Effetto suolo e turbo',items:[
+    '1977: Renault porta in pista il primo motore turbo 1,5 L; Lotus introduce l\'effetto suolo con le minigonne.',
+    'Punti: 9-6-4-3-2-1; dal 1981 contano i migliori 11 risultati.',
+    '1981–82: minigonne mobili vietate e altezza minima da terra; 1983: obbligo di fondo piatto.',
+    '1984: rifornimenti in gara vietati, limite di 220 L di carburante (195 L dal 1986).',
+    '1986: solo motori turbo 1,5 L; 1987–88 turbo limitati (valvola pop-off a 4,0 e poi 2,5 bar) affiancati dai 3,5 L aspirati.']},
+  {from:1989,to:1994,title:'Aspirati 3,5 litri ed elettronica',items:[
+    'Motori: solo 3,5 L aspirati, turbo banditi.',
+    'Punti: 9-6-4-3-2-1 con migliori 11 risultati fino al 1990; dal 1991 10-6-4-3-2-1 e contano tutti i risultati.',
+    'Inizio anni \'90: sospensioni attive, controllo di trazione e cambi semiautomatici; gran parte degli aiuti elettronici vietati nel 1994.',
+    '1993: safety car introdotta stabilmente; 1994: tornano i rifornimenti in gara.',
+    'Dopo Imola 1994: nuove misure di sicurezza (tavola sotto il fondo, meno carico aerodinamico).']},
+  {from:1995,to:2005,title:'Motori 3 litri',items:[
+    'Motori: 3,0 L aspirati (dal 2000 obbligatori i V10).',
+    'Punti: 10-6-4-3-2-1 fino al 2002; dal 2003 10-8-6-5-4-3-2-1.',
+    '1998: vetture più strette (1,8 m) e gomme scanalate.',
+    '2003: qualifica a giro singolo e parco chiuso tra qualifica e gara.',
+    '2004: un motore per weekend; 2005: un motore ogni due GP e un solo treno di gomme per qualifica e gara.']},
+  {from:2006,to:2013,title:'V8 2,4 litri',items:[
+    'Motori: V8 2,4 L aspirati, sviluppo congelato dal 2007.',
+    '2006: qualifica a eliminazione Q1-Q2-Q3.',
+    '2007: fornitore unico di gomme (Bridgestone), dal 2011 Pirelli.',
+    '2009: gomme slick, aerodinamica semplificata e KERS.',
+    '2010: punti 25-18-15-12-10-8-6-4-2-1; rifornimenti vietati.',
+    '2011: introdotto il DRS (ala posteriore mobile).']},
+  {from:2014,to:2021,title:'Era ibrida turbo',items:[
+    'Power unit: V6 1,6 L turbo ibrido con MGU-K e MGU-H, massimo 100 kg di carburante a gara.',
+    'Punti: 25-18-15-12-10-8-6-4-2-1; nel 2014 punti doppi all\'ultima gara.',
+    '2017: vetture e gomme più larghe; 2018: Halo obbligatorio.',
+    '2019–2024: 1 punto per il giro più veloce, se il pilota arriva nei primi 10.',
+    '2021: budget cap e prime gare Sprint (3-2-1 punti ai primi tre).']},
+  {from:2022,to:2025,title:'Ritorno dell\'effetto suolo',items:[
+    'Vetture a effetto suolo con fondo Venturi e cerchi da 18".',
+    'Sprint: punti 8-7-6-5-4-3-2-1 ai primi otto.',
+    '2023: Sprint Shootout per la griglia della Sprint; 2024: Sprint Qualifying.',
+    '2025: abolito il punto per il giro più veloce.']},
+  {from:2026,to:null,title:'Nuova generazione 2026',items:[
+    'Power unit: V6 1,6 L turbo con circa metà della potenza elettrica (MGU-K fino a 350 kW), MGU-H eliminato, carburanti 100% sostenibili.',
+    'Vetture più piccole e leggere, aerodinamica attiva al posto del DRS.',
+    'Punti: 25-18-15-12-10-8-6-4-2-1; Sprint 8-7-6-5-4-3-2-1.']},
+];
+const YEAR_NOTES = {
+  1950:['Primo Campionato del Mondo di Formula 1: 7 gare, compresa la 500 Miglia di Indianapolis.'],
+  1958:['Prima edizione della Coppa Costruttori, vinta da Vanwall.'],
+  1961:['Debutto della formula 1,5 litri.'],
+  1966:['Raddoppio della cilindrata a 3 litri.'],
+  1977:['Debutto del motore turbo (Renault RS01).'],
+  1983:['Obbligo di fondo piatto: fine dell\'effetto suolo con minigonne.'],
+  1989:['Turbo vietati: solo motori aspirati 3,5 L.'],
+  1991:['La vittoria vale 10 punti e contano tutti i risultati.'],
+  1994:['Ritorno dei rifornimenti; vietati controllo di trazione e sospensioni attive.'],
+  2003:['Nuovo sistema di punti ai primi 8 e qualifica a giro singolo.'],
+  2006:['Motori V8 e qualifica a eliminazione.'],
+  2009:['Slick, KERS e aerodinamica rivoluzionata.'],
+  2010:['Rifornimenti vietati; nuovo sistema di punti 25-18-15…'],
+  2014:['Debutto delle power unit ibride turbo; punti doppi ad Abu Dhabi.'],
+  2017:['Vetture più larghe e veloci.'],
+  2018:['Halo obbligatorio.'],
+  2019:['Torna il punto per il giro più veloce.'],
+  2021:['Prime gare Sprint e budget cap; GP del Belgio assegna metà punti.'],
+  2022:['Ritorno delle vetture a effetto suolo.'],
+  2025:['Abolito il punto per il giro più veloce.'],
+  2026:['Nuove power unit con metà potenza elettrica e aerodinamica attiva.'],
+};
+function eraOf(y){ return REG_ERAS.find(e=>y>=e.from && (e.to==null || y<=e.to)); }
+
+const POINT_PRESETS = [
+  {id:'p2010',l:'2010–oggi: 25-18-15-12-10-8-6-4-2-1',pts:[25,18,15,12,10,8,6,4,2,1],fl:0},
+  {id:'p2019',l:'2019–24: 25-18-15… + 1 giro veloce (top 10)',pts:[25,18,15,12,10,8,6,4,2,1],fl:1,flTop:10},
+  {id:'p2003',l:'2003–09: 10-8-6-5-4-3-2-1',pts:[10,8,6,5,4,3,2,1],fl:0},
+  {id:'p1991',l:'1991–2002: 10-6-4-3-2-1',pts:[10,6,4,3,2,1],fl:0},
+  {id:'p1961',l:'1961–90: 9-6-4-3-2-1',pts:[9,6,4,3,2,1],fl:0},
+  {id:'p1960',l:'1960: 8-6-4-3-2-1',pts:[8,6,4,3,2,1],fl:0},
+  {id:'p1950',l:'1950–59: 8-6-4-3-2 + 1 giro veloce',pts:[8,6,4,3,2],fl:1},
+  {id:'wins',l:'Solo vittorie (1 punto a vittoria)',pts:[1],fl:0},
+  {id:'motogp',l:'Stile MotoGP: 25-20-16-13-11-10-9-8-7-6-5-4-3-2-1',pts:[25,20,16,13,11,10,9,8,7,6,5,4,3,2,1],fl:0},
+  {id:'custom',l:'Personalizzato…',pts:null,fl:0},
+];
+
+// ===================== DATI: API, CACHE, MODELLO =====================
+const API = 'https://api.jolpi.ca/ergast/f1';
+const FIRST_YEAR = 1950;
+const CUR_YEAR = new Date().getFullYear();
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// ---------- IndexedDB ----------
+const Store = {
+  db: null,
+  open() {
+    return new Promise(res => {
+      try {
+        const rq = indexedDB.open('f1-historic', 1);
+        rq.onupgradeneeded = () => rq.result.createObjectStore('kv');
+        rq.onsuccess = () => { this.db = rq.result; res(true); };
+        rq.onerror = () => res(false);
+      } catch (e) { res(false); }
+    });
+  },
+  _tx(mode, fn) {
+    return new Promise((res, rej) => {
+      if (!this.db) return res(undefined);
+      const t = this.db.transaction('kv', mode), rq = fn(t.objectStore('kv'));
+      t.oncomplete = () => res(rq ? rq.result : undefined);
+      t.onerror = () => rej(t.error);
+    });
+  },
+  get(k) { return this._tx('readonly', s => s.get(k)); },
+  set(k, v) { return this._tx('readwrite', s => s.put(v, k)); },
+  del(k) { return this._tx('readwrite', s => s.delete(k)); },
+  clear() { return this._tx('readwrite', s => s.clear()); },
+  entries() {
+    return new Promise((res, rej) => {
+      if (!this.db) return res([]);
+      const t = this.db.transaction('kv', 'readonly'), st = t.objectStore('kv');
+      const a = st.getAllKeys(), b = st.getAll();
+      t.oncomplete = () => res(a.result.map((k, i) => [k, b.result[i]]));
+      t.onerror = () => rej(t.error);
+    });
+  }
+};
+
+// ---------- stato grezzo ----------
+const D = { seasons: {}, drivers: {}, cons: {}, circuits: {}, enrich: null, meta: { lastSync: 0 } };
+
+async function loadAll() {
+  for (const [k, v] of await Store.entries()) {
+    if (k.startsWith('season:')) D.seasons[v.year] = v;
+    else if (k === 'drivers') D.drivers = v;
+    else if (k === 'cons') D.cons = v;
+    else if (k === 'circuits') D.circuits = v;
+    else if (k === 'enrich') D.enrich = v;
+    else if (k === 'meta') D.meta = v;
+  }
+}
+async function saveMasters() {
+  await Store.set('drivers', D.drivers); await Store.set('cons', D.cons);
+  await Store.set('circuits', D.circuits); await Store.set('meta', D.meta);
+}
+
+// ---------- rete con limiti di frequenza ----------
+const Sync = { running: false, cancel: false, msg: '', wait: '', done: 0, total: 0, req: 0, err: null, onProgress: () => {}, onSeason: () => {} };
+const Net = { last: 0, gap: 320 };
+
+async function waitMsg(ms, txt) {
+  const end = Date.now() + ms;
+  while (Date.now() < end) {
+    if (Sync.cancel) throw new Error('Download interrotto');
+    Sync.wait = `${txt} tra ${Math.ceil((end - Date.now()) / 1000)} s`;
+    Sync.onProgress(); await sleep(1000);
+  }
+  Sync.wait = ''; Sync.onProgress();
+}
+async function apiGet(path) {
+  let attempt = 0;
+  for (;;) {
+    if (Sync.cancel) throw new Error('Download interrotto');
+    const w = Net.last + Net.gap - Date.now(); if (w > 0) await sleep(w);
+    Net.last = Date.now();
+    let r;
+    try { r = await fetch(API + path, { headers: { Accept: 'application/json' } }); }
+    catch (e) {
+      attempt++; if (attempt > 5) throw new Error('API non raggiungibile (controlla la connessione)');
+      await waitMsg(4000 * attempt, 'Errore di rete, nuovo tentativo'); continue;
+    }
+    Sync.req++;
+    if (r.status === 429) {
+      attempt++;
+      const ra = +(r.headers.get('Retry-After') || 0) * 1000;
+      await waitMsg(Math.max(ra, Math.min(60000 * attempt, 300000)), 'Limite richieste dell\'API raggiunto, riprendo');
+      continue;
+    }
+    if (r.status >= 500) {
+      attempt++; if (attempt > 5) throw new Error('Server API non disponibile (' + r.status + ')');
+      await waitMsg(5000 * attempt, 'Server non disponibile, riprovo'); continue;
+    }
+    if (!r.ok) throw new Error('Errore HTTP ' + r.status + ' su ' + path);
+    return (await r.json()).MRData;
+  }
+}
+async function pagedAll(path, extract) {
+  let off = 0, total = 1; const out = [];
+  while (off < total) {
+    const m = await apiGet(`${path}${path.includes('?') ? '&' : '?'}limit=100&offset=${off}`);
+    total = +m.total || 0; out.push(...(extract(m) || [])); off += 100;
+  }
+  return out;
+}
+function mergeRaces(list, key) {
+  const by = {};
+  for (const R of list) {
+    if (!by[R.round]) by[R.round] = Object.assign({}, R, { [key]: [] });
+    by[R.round][key].push(...(R[key] || []));
+  }
+  return Object.values(by);
+}
+
+// ---------- conversione ----------
+function ingDriver(x) {
+  if (!x) return;
+  D.drivers[x.driverId] = { id: x.driverId, gn: x.givenName, fn: x.familyName, dob: x.dateOfBirth || '', nat: x.nationality || '', code: x.code || '', pn: x.permanentNumber || '', url: x.url || '' };
+}
+function ingCons(x) { if (x) D.cons[x.constructorId] = { id: x.constructorId, name: x.name, nat: x.nationality || '', url: x.url || '' }; }
+function ingRace(s, R) {
+  const r = s.races[R.round] || (s.races[R.round] = { round: +R.round });
+  r.name = R.raceName; r.date = R.date; r.time = R.time || ''; r.url = R.url || '';
+  if (R.Sprint) r.sprintDate = R.Sprint.date;
+  const C = R.Circuit;
+  if (C) {
+    r.circ = C.circuitId;
+    D.circuits[C.circuitId] = { id: C.circuitId, name: C.circuitName, loc: C.Location?.locality || '', country: C.Location?.country || '', lat: C.Location?.lat, long: C.Location?.long, url: C.url || '' };
+  }
+}
+const num = v => (v === undefined || v === null || v === '') ? null : +v;
+function convRes(x) {
+  ingDriver(x.Driver); ingCons(x.Constructor);
+  const f = x.FastestLap;
+  return { d: x.Driver.driverId, c: x.Constructor.constructorId, n: x.number || '', p: num(x.position), pt: x.positionText || '', g: num(x.grid),
+    l: +x.laps || 0, s: x.status || '', pts: +x.points || 0, t: x.Time?.time || '',
+    fl: f ? { r: num(f.rank), lap: num(f.lap), t: f.Time?.time || '' } : null };
+}
+function convQ(x) {
+  ingDriver(x.Driver); ingCons(x.Constructor);
+  return { d: x.Driver.driverId, c: x.Constructor.constructorId, n: x.number || '', p: num(x.position), q1: x.Q1 || '', q2: x.Q2 || '', q3: x.Q3 || '' };
+}
+const newSeason = y => ({ year: y, races: {}, res: {}, spr: {}, q: {}, dst: [], cst: [], done: {}, fetchedAt: 0, final: false });
+
+async function syncSeason(y, what) {
+  const s = D.seasons[y] || (D.seasons[y] = newSeason(y));
+  if (what.sched) {
+    const races = await pagedAll(`/${y}.json`, m => m.RaceTable?.Races);
+    races.forEach(R => ingRace(s, R)); s.done.sched = true;
+  }
+  if (what.res) {
+    const races = mergeRaces(await pagedAll(`/${y}/results.json`, m => m.RaceTable?.Races), 'Results');
+    s.res = {};
+    for (const R of races) { ingRace(s, R); s.res[R.round] = R.Results.map(convRes); }
+    s.done.res = true;
+  }
+  if (what.spr && y >= 2021) {
+    const races = mergeRaces(await pagedAll(`/${y}/sprint.json`, m => m.RaceTable?.Races), 'SprintResults');
+    s.spr = {};
+    for (const R of races) { ingRace(s, R); s.spr[R.round] = R.SprintResults.map(convRes); }
+    s.done.spr = true;
+  }
+  if (what.st) {
+    const L = await pagedAll(`/${y}/driverstandings.json`, m => m.StandingsTable?.StandingsLists);
+    s.dst = L.flatMap(l => l.DriverStandings || []).map(x => {
+      ingDriver(x.Driver);
+      return { d: x.Driver.driverId, p: num(x.position), pt: x.positionText || '', pts: +x.points || 0, w: +x.wins || 0, cs: (x.Constructors || []).map(c => { ingCons(c); return c.constructorId; }) };
+    });
+    if (y >= 1958) {
+      const C = await pagedAll(`/${y}/constructorstandings.json`, m => m.StandingsTable?.StandingsLists);
+      s.cst = C.flatMap(l => l.ConstructorStandings || []).map(x => {
+        ingCons(x.Constructor);
+        return { c: x.Constructor.constructorId, p: num(x.position), pt: x.positionText || '', pts: +x.points || 0, w: +x.wins || 0 };
+      });
+    }
+    s.done.st = true;
+  }
+  if (what.q && y >= 1994) {
+    const races = mergeRaces(await pagedAll(`/${y}/qualifying.json`, m => m.RaceTable?.Races), 'QualifyingResults');
+    s.q = {};
+    for (const R of races) { ingRace(s, R); s.q[R.round] = R.QualifyingResults.map(convQ); }
+    s.done.q = true;
+  }
+  s.fetchedAt = Date.now();
+  s.final = y < CUR_YEAR && s.done.res && s.done.st && (y < 2021 || s.done.spr) && (y < 1994 || s.done.q) && s.fetchedAt > Date.UTC(y + 1, 0, 1);
+  await Store.set('season:' + y, s);
+  await saveMasters();
+}
+
+async function runSync(opts = {}) {
+  if (Sync.running) return;
+  Object.assign(Sync, { running: true, cancel: false, err: null, done: 0, req: 0, wait: '' });
+  Sync.onProgress();
+  try {
+    const tasks = [];
+    for (let y = CUR_YEAR; y >= FIRST_YEAR; y--) {
+      const s = D.seasons[y];
+      if (opts.full || !s || !s.final || !(s.done && s.done.res && s.done.st)) tasks.push({ y, ph: 1 });
+    }
+    for (let y = CUR_YEAR; y >= 1994; y--) {
+      const s = D.seasons[y];
+      if (opts.full || !s || !s.final || !(s.done && s.done.q)) tasks.push({ y, ph: 2 });
+    }
+    Sync.total = tasks.length;
+    for (const t of tasks) {
+      Sync.msg = t.ph === 1 ? `Stagione ${t.y}: risultati e classifiche` : `Stagione ${t.y}: qualifiche`;
+      Sync.onProgress();
+      if (t.ph === 1) await syncSeason(t.y, { sched: t.y >= CUR_YEAR, res: 1, spr: 1, st: 1 });
+      else await syncSeason(t.y, { q: 1 });
+      Sync.done++; Sync.onProgress(); Sync.onSeason(t.y);
+    }
+    D.meta.lastSync = Date.now(); await Store.set('meta', D.meta);
+    Sync.msg = 'Dati aggiornati';
+  } catch (e) { Sync.err = e.message; Sync.msg = ''; }
+  finally { Sync.running = false; Sync.wait = ''; Sync.onProgress(); }
+}
+
+// ---------- snapshot (esporta / importa / URL) ----------
+function makeSnapshot() {
+  return { format: 'f1-historic', version: 1, exportedAt: new Date().toISOString(), seasons: D.seasons, drivers: D.drivers, cons: D.cons, circuits: D.circuits, enrich: D.enrich };
+}
+async function applySnapshot(o) {
+  if (!o || !['f1-historic', 'f1-storico'].includes(o.format)) throw new Error('File non riconosciuto: serve un export di questa app');
+  for (const [y, s] of Object.entries(o.seasons || {})) {
+    const cur = D.seasons[y];
+    if (!cur || (s.fetchedAt || 0) >= (cur.fetchedAt || 0)) { D.seasons[y] = s; await Store.set('season:' + y, s); }
+  }
+  Object.assign(D.drivers, o.drivers || {}); Object.assign(D.cons, o.cons || {}); Object.assign(D.circuits, o.circuits || {});
+  if (o.enrich && !D.enrich) { D.enrich = o.enrich; await Store.set('enrich', D.enrich); }
+  await saveMasters();
+}
+
+// ---------- import F1DB (telaio, motore, gomme, luogo di nascita, giri veloci e qualifiche storiche) ----------
+async function unzipJson(buf) {
+  const v = new DataView(buf), u8 = new Uint8Array(buf);
+  let eocd = -1;
+  for (let i = buf.byteLength - 22; i >= Math.max(0, buf.byteLength - 70000); i--) if (v.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+  if (eocd < 0) throw new Error('Archivio ZIP non valido');
+  let p = v.getUint32(eocd + 16, true); const n = v.getUint16(eocd + 10, true);
+  for (let k = 0; k < n; k++) {
+    if (v.getUint32(p, true) !== 0x02014b50) break;
+    const meth = v.getUint16(p + 10, true), csz = v.getUint32(p + 20, true);
+    const nl = v.getUint16(p + 28, true), el = v.getUint16(p + 30, true), cl = v.getUint16(p + 32, true), lo = v.getUint32(p + 42, true);
+    const name = new TextDecoder().decode(u8.subarray(p + 46, p + 46 + nl));
+    p += 46 + nl + el + cl;
+    if (!/\.json$/i.test(name)) continue;
+    const start = lo + 30 + v.getUint16(lo + 26, true) + v.getUint16(lo + 28, true);
+    const data = u8.subarray(start, start + csz);
+    if (meth === 0) return new TextDecoder().decode(data);
+    if (meth !== 8) throw new Error('Compressione ZIP non supportata');
+    if (typeof DecompressionStream === 'undefined') throw new Error('Browser troppo vecchio per aprire lo ZIP: estrai il file .json e caricalo');
+    const ds = new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+    return await new Response(ds).text();
+  }
+  throw new Error('Nessun file .json nello ZIP');
+}
+const normName = s => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z]/g, '');
+let regionIt = null;
+try { regionIt = new Intl.DisplayNames(['it'], { type: 'region' }); } catch (e) {}
+
+function buildEnrich(db) {
+  const E = { ent: {}, drv: {}, fl: {}, q: {}, tyN: {}, src: 'F1DB', at: Date.now() };
+  const countries = {}; (db.countries || []).forEach(c => countries[c.id] = c);
+  const cName = id => { const c = countries[id]; if (!c) return ''; try { return (regionIt && c.alpha2Code && regionIt.of(c.alpha2Code)) || c.name; } catch (e) { return c.name; } };
+  // mappa piloti: cognome + data di nascita
+  const ergByKey = {};
+  for (const d of Object.values(D.drivers)) ergByKey[normName(d.fn) + '|' + d.dob] = d.id;
+  const dmap = {};
+  for (const d of db.drivers || []) {
+    const id = ergByKey[normName(d.lastName) + '|' + d.dateOfBirth];
+    if (id) { dmap[d.id] = id; E.drv[id] = { pob: d.placeOfBirth || '', cob: cName(d.countryOfBirthCountryId) }; }
+  }
+  // indice risultati Jolpica per gara
+  const resIdx = {};
+  for (const s of Object.values(D.seasons)) for (const [r, rows] of Object.entries(s.res || {})) resIdx[s.year + '-' + r] = rows;
+  // completa mappa piloti con numero di gara, poi mappa scuderie per co-occorrenza
+  const votes = {};
+  for (const race of db.races || []) {
+    const rows = resIdx[race.year + '-' + race.round]; if (!rows) continue;
+    for (const x of race.raceResults || []) {
+      let did = dmap[x.driverId];
+      if (!did) { const m = rows.find(r => String(r.n) === String(x.driverNumber) && r.p === x.positionNumber); if (m) { did = dmap[x.driverId] = m.d; } }
+      if (!did) continue;
+      const m = rows.find(r => r.d === did); if (!m) continue;
+      const k = x.constructorId; (votes[k] || (votes[k] = {}))[m.c] = ((votes[k] || {})[m.c] || 0) + 1;
+    }
+  }
+  for (const d of db.drivers || []) if (dmap[d.id] && !E.drv[dmap[d.id]]) E.drv[dmap[d.id]] = { pob: d.placeOfBirth || '', cob: cName(d.countryOfBirthCountryId) };
+  const cmap = {};
+  for (const [k, v] of Object.entries(votes)) cmap[k] = Object.entries(v).sort((a, b) => b[1] - a[1])[0][0];
+  const chassis = {}; (db.chassis || []).forEach(c => chassis[c.id] = c.name || c.fullName);
+  const emf = {}; (db.engineManufacturers || []).forEach(e => emf[e.id] = e.name);
+  const engines = {}; (db.engines || []).forEach(e => engines[e.id] = e.fullName || ((emf[e.engineManufacturerId] || '') + ' ' + (e.name || '')).trim());
+  const tyres = {}; (db.tyreManufacturers || []).forEach(t => tyres[t.id] = t.name);
+  const add = (k, ch, en, ty) => {
+    const o = E.ent[k] || (E.ent[k] = { ch: [], en: [], ty: [] });
+    ch.forEach(x => x && !o.ch.includes(x) && o.ch.push(x)); en.forEach(x => x && !o.en.includes(x) && o.en.push(x)); ty.forEach(x => x && !o.ty.includes(x) && o.ty.push(x));
+  };
+  for (const s of db.seasons || []) {
+    const tySet = new Set();
+    for (const en of s.entrants || []) for (const ec of en.constructors || []) {
+      const c = cmap[ec.constructorId] || String(ec.constructorId).replace(/-/g, '_');
+      const ch = (ec.chassis || []).map(x => chassis[x.chassisId]);
+      const eng = (ec.engines || []).map(x => engines[x.engineId] || emf[ec.engineManufacturerId]);
+      if (!eng.length && ec.engineManufacturerId) eng.push(emf[ec.engineManufacturerId]);
+      const ty = (ec.tyreManufacturers || []).map(x => tyres[x.tyreManufacturerId]);
+      ty.forEach(t => t && tySet.add(t));
+      add(s.year + '|' + c, ch, eng, ty);
+      for (const dr of ec.drivers || []) if (!dr.testDriver && dmap[dr.driverId]) add(s.year + '|' + c + '|' + dmap[dr.driverId], ch, eng, ty);
+    }
+    E.tyN[s.year] = tySet.size;
+  }
+  for (const race of db.races || []) {
+    const key = race.year + '-' + race.round;
+    const f = (race.fastestLaps || []).find(x => x.positionNumber === 1);
+    if (f && dmap[f.driverId]) E.fl[key] = { d: dmap[f.driverId], c: cmap[f.constructorId] || '', t: f.time || '', lap: f.lap || null };
+    if (race.year < 1994 && race.qualifyingResults && race.qualifyingResults.length) {
+      E.q[key] = race.qualifyingResults.filter(x => dmap[x.driverId]).map(x => ({ d: dmap[x.driverId], c: cmap[x.constructorId] || '', n: x.driverNumber || '', p: x.positionNumber, q1: '', q2: '', q3: '', t: x.time || '' }));
+    }
+  }
+  E.stats = { drivers: Object.keys(E.drv).length, entries: Object.keys(E.ent).length };
+  return E;
+}
+async function importF1DB(file) {
+  const text = /\.zip$/i.test(file.name) ? await unzipJson(await file.arrayBuffer()) : await file.text();
+  const db = JSON.parse(text);
+  if (!db.drivers || !db.races) throw new Error('Il file non sembra il database F1DB (f1db-json-single)');
+  if (!Object.keys(D.drivers).length) throw new Error('Scarica prima i risultati: F1DB serve solo a completarli');
+  D.enrich = buildEnrich(db);
+  await Store.set('enrich', D.enrich);
+  return D.enrich.stats;
+}
+
+// ===================== MODELLO STATISTICHE =====================
+const isNum = x => /^\d+$/.test(x.pt) && x.p != null;
+const isStart = x => !['F', 'W'].includes(x.pt) && !/qualif|withdr|did not start|not started/i.test(x.s);
+const isRet = x => isStart(x) && (x.pt === 'R' || x.pt === 'N');
+function lapMs(t) { if (!t) return Infinity; const m = String(t).match(/^(?:(\d+):)?(\d+(?:\.\d+)?)$/); return m ? (+(m[1] || 0)) * 60000 + parseFloat(m[2]) * 1000 : Infinity; }
+function fastestOf(rows) {
+  const r1 = rows.find(x => x.fl && x.fl.r === 1);
+  if (r1) return { d: r1.d, c: r1.c, t: r1.fl.t, lap: r1.fl.lap };
+  let best = null;
+  for (const x of rows) if (x.fl && lapMs(x.fl.t) < (best ? lapMs(best.fl.t) : Infinity)) best = x;
+  return best ? { d: best.d, c: best.c, t: best.fl.t, lap: best.fl.lap } : null;
+}
+function groupBy(rows, k) { const o = {}; for (const x of rows) (o[x[k]] || (o[x[k]] = [])).push(x); return o; }
+const blank = () => ({ races: 0, poles: 0, wins: 0, pod: 0, ret: 0, sr: 0, sp: 0, sw: 0, spod: 0, sret: 0, dbl: 0, pts: null, pos: null, pt: '', teams: [], rPts: 0 });
+const blankCareer = () => ({ titles: 0, years: [], races: 0, poles: 0, wins: 0, pod: 0, ret: 0, sr: 0, sp: 0, sw: 0, spod: 0, sret: 0, dbl: 0, pts: 0, sPos: 0, nPos: 0, sQ: 0, nQ: 0, first: null, last: null, firstWin: null, firstPod: null, firstPole: null });
+
+let M = null;
+function buildModel() {
+  const E = D.enrich || {};
+  const today = new Date().toISOString().slice(0, 10);
+  M = { years: [], yi: {}, races: [], raceByKey: {}, dy: {}, cy: {}, dc: {}, cc: {}, circ: {}, empty: true };
+  const DY = (d, y) => ((M.dy[d] || (M.dy[d] = {}))[y] || (M.dy[d][y] = blank()));
+  const CY = (c, y) => ((M.cy[c] || (M.cy[c] = {}))[y] || (M.cy[c][y] = blank()));
+  const DC = d => M.dc[d] || (M.dc[d] = blankCareer());
+  const CC = c => M.cc[c] || (M.cc[c] = blankCareer());
+  const years = Object.keys(D.seasons).map(Number).filter(y => Object.keys(D.seasons[y].races || {}).length).sort((a, b) => a - b);
+  for (const y of years) {
+    const s = D.seasons[y];
+    const rounds = Object.keys(s.races).map(Number).sort((a, b) => a - b);
+    const yi = { y, races: [], hasSprint: false, dst: s.dst || [], cst: s.cst || [] };
+    for (const r of rounds) {
+      const R = s.races[r], key = y + '-' + r;
+      const res = (s.res && s.res[r]) || [], spr = (s.spr && s.spr[r]) || [];
+      let q = (s.q && s.q[r] && s.q[r].length) ? s.q[r] : (E.q && E.q[key]) || [];
+      const race = { key, y, r, name: R.name, date: R.date, circ: R.circ, url: R.url, sprintDate: R.sprintDate, res, spr, q, done: res.length > 0, events: [] };
+      const qp = q.find(x => x.p === 1);
+      if (qp) race.pole = { d: qp.d, c: qp.c || (res.find(x => x.d === qp.d) || {}).c, t: qp.q3 || qp.q2 || qp.q1 || qp.t || '' };
+      else { const g1 = res.find(x => x.g === 1); if (g1) race.pole = { d: g1.d, c: g1.c, t: '' }; }
+      race.podium = [1, 2, 3].map(p => res.filter(x => x.p === p && isNum(x)));
+      race.fl = fastestOf(res) || (E.fl && E.fl[key]) || null;
+      race.laps = race.podium[0][0]?.l || (res.length ? Math.max(...res.map(x => x.l || 0)) : null);
+      const c1 = new Set(race.podium[0].map(x => x.c));
+      race.dbl = race.podium[1].map(x => x.c).find(c => c1.has(c)) || null;
+      if (spr.length) {
+        yi.hasSprint = true; race.hasSpr = true;
+        const sg = spr.find(x => x.g === 1); race.sPole = sg ? { d: sg.d, c: sg.c } : null;
+        race.sPodium = [1, 2, 3].map(p => spr.filter(x => x.p === p && isNum(x)));
+        race.sFl = fastestOf(spr); race.sLaps = race.sPodium[0][0]?.l || null;
+      } else if (R.sprintDate) { race.hasSpr = true; yi.hasSprint = true; race.sPodium = [[], [], []]; }
+      yi.races.push(race); M.races.push(race); M.raceByKey[key] = race;
+      if (race.circ) { const ci = M.circ[race.circ] || (M.circ[race.circ] = { id: race.circ, races: [] }); ci.races.push(race); }
+      if (!race.done) continue;
+      M.empty = false;
+      // --- piloti ---
+      for (const [d, rows] of Object.entries(groupBy(res, 'd'))) {
+        const st = rows.filter(isStart); if (!st.length) continue;
+        const o = DY(d, y), car = DC(d);
+        o.races++; rows.forEach(x => { if (!o.teams.includes(x.c)) o.teams.push(x.c); o.rPts += x.pts; });
+        const nums = rows.filter(isNum).map(x => x.p), best = nums.length ? Math.min(...nums) : null;
+        if (best === 1) { o.wins++; if (!car.firstWin) car.firstWin = race; }
+        if (best != null && best <= 3) { o.pod++; if (!car.firstPod) car.firstPod = race; }
+        if (st.every(isRet)) o.ret++;
+        if (best != null) { car.sPos += best; car.nPos++; }
+        const qr = q.find(x => x.d === d), qv = qr ? qr.p : (rows.find(x => x.g > 0) || {}).g;
+        if (qv) { car.sQ += qv; car.nQ++; }
+        if (!car.first) car.first = race; car.last = race;
+      }
+      if (race.pole) { DY(race.pole.d, y).poles++; const cd = DC(race.pole.d); if (!cd.firstPole) cd.firstPole = race; }
+      // --- scuderie ---
+      for (const [c, rows] of Object.entries(groupBy(res, 'c'))) {
+        const st = rows.filter(isStart); if (!st.length) continue;
+        const o = CY(c, y), car = CC(c);
+        o.races++;
+        rows.forEach(x => o.rPts += x.pts);
+        if (race.podium[0].some(x => x.c === c)) { o.wins++; if (!car.firstWin) car.firstWin = race; }
+        const pods = rows.filter(x => isNum(x) && x.p <= 3).length;
+        if (pods) { o.pod += pods; if (!car.firstPod) car.firstPod = race; }
+        o.ret += rows.filter(isRet).length;
+        if (race.dbl === c) o.dbl++;
+        rows.filter(isNum).forEach(x => { car.sPos += x.p; car.nPos++; });
+        const qr = q.filter(x => x.c === c);
+        if (qr.length) qr.forEach(x => { if (x.p) { car.sQ += x.p; car.nQ++; } });
+        else rows.forEach(x => { if (x.g > 0) { car.sQ += x.g; car.nQ++; } });
+        if (!car.first) car.first = race; car.last = race;
+      }
+      if (race.pole && race.pole.c) { CY(race.pole.c, y).poles++; const cc = CC(race.pole.c); if (!cc.firstPole) cc.firstPole = race; }
+      // --- sprint ---
+      if (spr.length) {
+        for (const [d, rows] of Object.entries(groupBy(spr, 'd'))) {
+          if (!rows.some(isStart)) continue;
+          const o = DY(d, y); o.sr++; rows.forEach(x => o.rPts += x.pts);
+          if (rows.some(x => isNum(x) && x.p === 1)) o.sw++;
+          if (rows.some(x => isNum(x) && x.p <= 3)) o.spod++;
+          if (rows.filter(isStart).every(isRet)) o.sret++;
+        }
+        for (const [c, rows] of Object.entries(groupBy(spr, 'c'))) {
+          if (!rows.some(isStart)) continue;
+          const o = CY(c, y); o.sr++; rows.forEach(x => o.rPts += x.pts);
+          if (rows.some(x => isNum(x) && x.p === 1)) o.sw++;
+          o.spod += rows.filter(x => isNum(x) && x.p <= 3).length;
+          o.sret += rows.filter(isRet).length;
+        }
+        if (race.sPole) { DY(race.sPole.d, y).sp++; CY(race.sPole.c, y).sp++; }
+      }
+    }
+    const last = yi.races[yi.races.length - 1];
+    yi.complete = yi.races.length > 0 && yi.races.every(r => r.done) && (y < CUR_YEAR || (last && last.date < today));
+    yi.started = yi.races.some(r => r.done);
+    // classifiche
+    for (const e of yi.dst) { const o = M.dy[e.d] && M.dy[e.d][y]; if (o) { o.pts = e.pts; o.pos = e.p; o.pt = e.pt; } }
+    for (const e of yi.cst) { const o = M.cy[e.c] && M.cy[e.c][y]; if (o) { o.pts = e.pts; o.pos = e.p; o.pt = e.pt; } }
+    for (const d in M.dy) { const o = M.dy[d][y]; if (o && o.pts == null) o.pts = o.rPts; }
+    if (yi.complete) {
+      const ch = yi.dst.find(e => e.p === 1); if (ch) { yi.champ = ch.d; DC(ch.d).titles++; }
+      const cc = yi.cst.find(e => e.p === 1); if (cc) { yi.cChamp = cc.c; CC(cc.c).titles++; }
+    }
+    if (yi.started) M.years.push(y);
+    M.yi[y] = yi;
+  }
+  // totali carriera
+  const sum = (tot, per) => { for (const [y, o] of Object.entries(per)) { tot.years.push(+y); for (const k of ['races', 'poles', 'wins', 'pod', 'ret', 'sr', 'sp', 'sw', 'spod', 'sret', 'dbl']) tot[k] += o[k]; tot.pts += o.pts || 0; } };
+  for (const d in M.dy) sum(DC(d), M.dy[d]);
+  for (const c in M.cy) sum(CC(c), M.cy[c]);
+  M.drvIds = Object.keys(M.dc).filter(d => M.dc[d].races > 0);
+  M.conIds = Object.keys(M.cc).filter(c => M.cc[c].races > 0);
+  M.lastYear = M.years[M.years.length - 1];
+  buildEvents();
+  return M;
+}
+
+// ---------- eventi salienti generati dai dati ----------
+function clinchRound(yi, kind) {
+  const races = yi.races; if (yi.y < 1991) return null;
+  const k = kind === 'd' ? 'd' : 'c';
+  const top = rows => { const p = rows.map(x => x.pts).sort((a, b) => b - a); return kind === 'c' ? (p[0] || 0) + (p[1] || 0) : (p[0] || 0); };
+  const maxRace = Math.max(0, ...races.filter(r => r.done).map(r => top(r.res)));
+  const maxSpr = Math.max(0, ...races.filter(r => r.spr.length).map(r => top(r.spr)));
+  const tot = {};
+  for (let i = 0; i < races.length; i++) {
+    const r = races[i]; if (!r.done) return null;
+    for (const x of r.res.concat(r.spr)) tot[x[k]] = (tot[x[k]] || 0) + x.pts;
+    let remain = 0;
+    for (let j = i + 1; j < races.length; j++) remain += maxRace * ((yi.y === 2014 && j === races.length - 1) ? 2 : 1) + (races[j].hasSpr ? maxSpr : 0);
+    const arr = Object.entries(tot).sort((a, b) => b[1] - a[1]);
+    if (arr.length > 1 && arr[0][1] - arr[1][1] > remain) return { r, id: arr[0][0], last: i === races.length - 1 };
+    if (arr.length === 1 && i === races.length - 1) return { r, id: arr[0][0], last: true };
+  }
+  return null;
+}
+function buildEvents() {
+  const dn = d => dName(d), cn = c => cName(c);
+  for (const y of M.years) {
+    const yi = M.yi[y];
+    const debut = {};
+    for (const d of M.drvIds) { const f = M.dc[d].first; if (f && f.y === y) (debut[f.key] || (debut[f.key] = [])).push(d); }
+    for (const race of yi.races) {
+      if (!race.done) continue;
+      const ev = race.events = [];
+      const w = race.podium[0][0];
+      if (w) {
+        if (M.dc[w.d].firstWin === race) ev.push({ t: 'win', x: `Prima vittoria in carriera per ${dn(w.d)}` });
+        if (M.cc[w.c] && M.cc[w.c].firstWin === race) ev.push({ t: 'team', x: `Prima vittoria nella storia per ${cn(w.c)}` });
+        if (w.g >= 8) ev.push({ t: 'rec', x: `${dn(w.d)} vince partendo dalla ${w.g}ª posizione in griglia` });
+        if (w.g === 0) ev.push({ t: 'rec', x: `${dn(w.d)} vince partendo dalla pit lane` });
+      }
+      for (const p of [race.podium[1], race.podium[2]]) for (const x of p) if (M.dc[x.d].firstPod === race) ev.push({ t: 'pod', x: `Primo podio in carriera per ${dn(x.d)}` });
+      if (race.pole && M.dc[race.pole.d] && M.dc[race.pole.d].firstPole === race) ev.push({ t: 'pole', x: `Prima pole position per ${dn(race.pole.d)}` });
+      if (race.dbl) ev.push({ t: 'team', x: `Doppietta ${cn(race.dbl)}` });
+      const deb = debut[race.key];
+      if (deb && deb.length) ev.push({ t: 'deb', x: `Esordio in F1: ${deb.slice(0, 8).map(dn).join(', ')}${deb.length > 8 ? ` e altri ${deb.length - 8}` : ''}` });
+      if (yi.complete || y < CUR_YEAR) {
+        const fin = M.drvIds.filter(d => M.dc[d].last === race && M.dc[d].races >= 30 && M.lastYear > y);
+        if (fin.length) ev.push({ t: 'deb', x: `Ultima gara in carriera: ${fin.map(dn).join(', ')}` });
+      }
+      const led = race.res.filter(x => isRet(x) && x.g === 1);
+      if (led.length && race.pole) ev.push({ t: 'ret', x: `Ritiro del poleman ${dn(led[0].d)} (${led[0].s})` });
+    }
+    const dcl = clinchRound(yi, 'd');
+    if (dcl) dcl.r.events.unshift({ t: 'title', x: `${dn(dcl.id)} è Campione del Mondo${dcl.last ? ' all\'ultima gara' : ''}` });
+    else if (yi.complete && yi.champ) { const lr = yi.races[yi.races.length - 1]; lr.events.unshift({ t: 'title', x: `${dn(yi.champ)} è Campione del Mondo` }); }
+    if (yi.complete && yi.cChamp) {
+      const ccl = clinchRound(yi, 'c'); const lr = (ccl && ccl.id === yi.cChamp) ? ccl.r : yi.races[yi.races.length - 1];
+      lr.events.unshift({ t: 'title', x: `${cn(yi.cChamp)} vince il Mondiale Costruttori` });
+      if (M.years.filter(yy => yy <= y && M.yi[yy].cChamp === yi.cChamp).length === 1) lr.events.push({ t: 'team', x: `Primo titolo Costruttori per ${cn(yi.cChamp)}` });
+    }
+    if (yi.complete && yi.champ && M.years.filter(yy => yy <= y && M.yi[yy].champ === yi.champ).length === 1) {
+      const lr = (dcl && dcl.r) || yi.races[yi.races.length - 1];
+      lr.events.push({ t: 'title', x: `Primo titolo mondiale per ${dn(yi.champ)}` });
+    }
+  }
+}
+
+// ---------- What If ----------
+function whatIf(y, cfg) {
+  const yi = M.yi[y]; if (!yi) return null;
+  const drv = {}, con = {};
+  const D_ = d => drv[d] || (drv[d] = { id: d, scores: [], spr: 0, cnt: {} });
+  const C_ = c => con[c] || (con[c] = { id: c, pts: 0, cnt: {} });
+  for (const race of yi.races) {
+    if (!race.done) continue;
+    const per = {};
+    for (const x of race.res) {
+      if (!isNum(x)) { if (isStart(x)) D_(x.d); continue; }
+      const p = (cfg.pts[x.p - 1] || 0);
+      per[x.d] = Math.max(per[x.d] || 0, p);
+      D_(x.d).cnt[x.p] = (D_(x.d).cnt[x.p] || 0) + 1;
+      C_(x.c).pts += p; C_(x.c).cnt[x.p] = (C_(x.c).cnt[x.p] || 0) + 1;
+    }
+    if (cfg.fl && race.fl) {
+      const fr = race.res.find(x => x.d === race.fl.d);
+      if (fr && (!cfg.flTop || (isNum(fr) && fr.p <= cfg.flTop))) { per[race.fl.d] = (per[race.fl.d] || 0) + cfg.fl; C_(fr.c).pts += cfg.fl; }
+    }
+    for (const [d, p] of Object.entries(per)) D_(d).scores.push(p);
+    if (race.spr.length && cfg.sprint !== 'none') {
+      for (const x of race.spr) {
+        const p = cfg.sprint === 'real' ? x.pts : (isNum(x) ? (cfg.sprint[x.p - 1] || 0) : 0);
+        D_(x.d).spr += p; C_(x.c).pts += p;
+      }
+    }
+  }
+  const cb = (a, b) => { for (let p = 1; p <= 40; p++) { const d = (b.cnt[p] || 0) - (a.cnt[p] || 0); if (d) return d; } return 0; };
+  const dl = Object.values(drv).map(o => {
+    const s = o.scores.slice().sort((a, b) => b - a);
+    const used = cfg.best > 0 ? s.slice(0, cfg.best) : s;
+    o.tot = used.reduce((a, b) => a + b, 0) + o.spr;
+    const real = yi.dst.find(e => e.d === o.id); o.realPos = real ? real.p : null; o.realPts = real ? real.pts : null;
+    return o;
+  }).sort((a, b) => b.tot - a.tot || cb(a, b));
+  dl.forEach((o, i) => o.pos = i + 1);
+  const cl = Object.values(con).map(o => { const real = yi.cst.find(e => e.c === o.id); o.tot = o.pts; o.realPos = real ? real.p : null; o.realPts = real ? real.pts : null; return o; })
+    .sort((a, b) => b.tot - a.tot || cb(a, b));
+  cl.forEach((o, i) => o.pos = i + 1);
+  return { drivers: dl, cons: cl };
+}
+
+// ---------- utilità nomi/date ----------
+function dName(d) { const x = D.drivers[d]; return x ? `${x.gn} ${x.fn}` : d; }
+function cName(c) { const x = D.cons[c]; return x ? x.name : c; }
+function dAbbr(d) { const x = D.drivers[d]; return x ? (x.code || normName(x.fn).slice(0, 3).toUpperCase()) : ''; }
+function fmtDate(iso) { if (!iso) return ''; const [y, m, d] = iso.split('-'); return `${d}/${m}/${y}`; }
+function ageAt(dob, iso) {
+  if (!dob || !iso) return null;
+  const [a, b, c] = dob.split('-').map(Number), [x, y, z] = iso.split('-').map(Number);
+  return x - a - ((y < b || (y === b && z < c)) ? 1 : 0);
+}
+
+if (false) module.exports = { D, Store, Sync, Net, runSync, buildModel, whatIf, getM: () => M, dName, importF1DB, buildEnrich, makeSnapshot, applySnapshot, clinchRound };
+
+// ===================== INTERFACCIA =====================
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const NAV = [['albo-piloti', "Albo d'oro Piloti"], ['storico-piloti', 'Storico Piloti'], ['albo-scuderie', "Albo d'oro Scuderie"], ['storico-scuderie', 'Storico Scuderie'], ['anno', 'Anno'], ['circuiti', 'Circuito'], ['regolamenti', 'Storico Regolamenti'], ['whatif', 'What If?'], ['impostazioni', 'Impostazioni']];
+const SET = Object.assign({ auto: true, theme: 'dark', snapUrl: '' }, (() => { try { return JSON.parse(localStorage.getItem('f1h-set') || '{}'); } catch (e) { return {}; } })());
+const saveSet = () => { try { localStorage.setItem('f1h-set', JSON.stringify(SET)); } catch (e) {} };
+
+const NAT = { British: 'Britannica', Italian: 'Italiana', German: 'Tedesca', French: 'Francese', Brazilian: 'Brasiliana', Finnish: 'Finlandese', Austrian: 'Austriaca', Argentine: 'Argentina', Argentinian: 'Argentina', American: 'Statunitense', Australian: 'Australiana', Spanish: 'Spagnola', Dutch: 'Olandese', Belgian: 'Belga', Swiss: 'Svizzera', Swedish: 'Svedese', Mexican: 'Messicana', Canadian: 'Canadese', Japanese: 'Giapponese', 'New Zealander': 'Neozelandese', 'South African': 'Sudafricana', Monegasque: 'Monegasca', Danish: 'Danese', Polish: 'Polacca', Russian: 'Russa', Thai: 'Thailandese', Chinese: 'Cinese', Venezuelan: 'Venezuelana', Colombian: 'Colombiana', Portuguese: 'Portoghese', Irish: 'Irlandese', Hungarian: 'Ungherese', Czech: 'Ceca', Indian: 'Indiana', Indonesian: 'Indonesiana', Malaysian: 'Malese', Rhodesian: 'Rhodesiana', Uruguayan: 'Uruguaiana', Chilean: 'Cilena', 'East German': 'Tedesca (RDT)', Liechtensteiner: 'Liechtensteinese', Hong: 'Hongkonghese', 'Argentine-Italian': 'Italo-argentina', 'American-Italian': 'Italo-americana', Emirati: 'Emiratina', Estonian: 'Estone' };
+const COUNTRY = { UK: 'Regno Unito', USA: 'Stati Uniti', 'United States': 'Stati Uniti', Italy: 'Italia', Monaco: 'Monaco', Belgium: 'Belgio', France: 'Francia', Germany: 'Germania', Netherlands: 'Paesi Bassi', Spain: 'Spagna', Switzerland: 'Svizzera', Argentina: 'Argentina', Portugal: 'Portogallo', Morocco: 'Marocco', 'South Africa': 'Sudafrica', Mexico: 'Messico', Canada: 'Canada', Austria: 'Austria', Sweden: 'Svezia', Brazil: 'Brasile', Japan: 'Giappone', Australia: 'Australia', Hungary: 'Ungheria', Malaysia: 'Malesia', Bahrain: 'Bahrein', China: 'Cina', Turkey: 'Turchia', Singapore: 'Singapore', UAE: 'Emirati Arabi Uniti', Korea: 'Corea del Sud', India: 'India', Russia: 'Russia', Azerbaijan: 'Azerbaigian', 'Saudi Arabia': 'Arabia Saudita', Qatar: 'Qatar', Vietnam: 'Vietnam' };
+const natIt = n => NAT[n] || n || '';
+const ctyIt = c => COUNTRY[c] || c || '';
+const circName = id => (D.circuits[id] || {}).name || id || '';
+const dl = d => `<a class="lk" data-d="${esc(d)}">${esc(dName(d))}</a>`;
+const cl = c => `<a class="lk" data-c="${esc(c)}">${esc(cName(c))}</a>`;
+const zn = v => v === 0 ? '<span class="z">0</span>' : (v == null ? '<span class="z">—</span>' : v);
+const fmtPts = v => v == null ? '—' : (Math.round(v * 100) / 100).toString().replace('.', ',');
+const avg = (s, n) => n ? (s / n) : null;
+const fmtAvg = v => v == null ? '—' : v.toFixed(2).replace('.', ',');
+function evText(race, dob) {
+  if (!race) return '—';
+  const a = ageAt(dob, race.date);
+  return `${esc(circName(race.circ))}, ${fmtDate(race.date)}${a != null ? `, ${a} anni` : ''}`;
+}
+
+// ---------- griglia virtuale (righe e colonne) ----------
+function vgrid(host, cols, rows, cellFn, o = {}) {
+  const rowH = o.rowH || 32, fz = o.frozen || 0;
+  const xs = []; let W = 0; for (const c of cols) { xs.push(W); W += c.w; }
+  const fzW = fz ? xs[fz - 1] + cols[fz - 1].w : 0;
+  let gh = '';
+  if (cols.some(c => c.g)) {
+    const groups = [];
+    for (let i = fz; i < cols.length; i++) { const g = groups[groups.length - 1]; if (g && g.g === cols[i].g) g.w += cols[i].w; else groups.push({ g: cols[i].g, w: cols[i].w, a: cols[i].ga || '' }); }
+    gh = `<div class="vg-hr">${fz ? `<div class="vg-h fz grp" style="width:${fzW}px;left:0"></div>` : ''}${groups.map(g => `<div class="vg-h grp" style="width:${g.w}px" ${g.a}>${g.g}</div>`).join('')}</div>`;
+  }
+  const lh = `<div class="vg-hr">${cols.map((c, i) => `<div class="vg-h ${i < fz ? 'fz' : ''} ${c.cls || ''} ${o.sortCi === i ? 's-' + o.sortDir : ''}" data-ci="${i}" style="width:${c.w}px;${i < fz ? `left:${xs[i]}px` : ''}" title="${esc(c.t || c.l)}">${c.l}</div>`).join('')}</div>`;
+  host.innerHTML = `<div class="vg"><div class="vg-head" style="width:${W}px">${gh}${lh}</div><div class="vg-body" style="width:${W}px;height:${Math.max(rows.length * rowH, 1)}px"></div></div>${rows.length ? '' : '<p class="mut">Nessun risultato.</p>'}`;
+  const sc = host.firstElementChild, head = sc.firstElementChild, body = sc.lastElementChild;
+  let last = '';
+  const size = () => { const top = sc.getBoundingClientRect().top; sc.style.height = Math.max(320, window.innerHeight - top - 14) + 'px'; };
+  function render() {
+    const st = Math.max(0, sc.scrollTop - head.offsetHeight), h = sc.clientHeight;
+    const r0 = Math.max(0, Math.floor(st / rowH) - 4), r1 = Math.min(rows.length - 1, Math.ceil((st + h) / rowH) + 4);
+    const L = sc.scrollLeft + fzW, R = sc.scrollLeft + sc.clientWidth;
+    let c0 = fz; while (c0 < cols.length - 1 && xs[c0] + cols[c0].w < L) c0++;
+    let c1 = c0; while (c1 < cols.length - 1 && xs[c1 + 1] < R) c1++;
+    c0 = Math.max(fz, c0 - 2); c1 = Math.min(cols.length - 1, c1 + 2);
+    const sig = `${r0}|${r1}|${c0}|${c1}`; if (sig === last) return; last = sig;
+    let html = '';
+    for (let i = r0; i <= r1; i++) {
+      const row = rows[i];
+      html += `<div class="vg-r${i % 2 ? ' odd' : ''}" style="top:${i * rowH}px;height:${rowH}px">`;
+      for (let j = 0; j < fz; j++) html += `<div class="vg-c fz ${cols[j].cls || ''}" style="width:${cols[j].w}px;left:${xs[j]}px">${cellFn(row, j, i)}</div>`;
+      html += `<div style="flex:none;width:${xs[c0] - fzW}px"></div>`;
+      for (let j = c0; j <= c1; j++) html += `<div class="vg-c ${cols[j].cls || ''}" style="width:${cols[j].w}px">${cellFn(row, j, i)}</div>`;
+      html += '</div>';
+    }
+    body.innerHTML = html;
+  }
+  let raf = 0;
+  sc.addEventListener('scroll', () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; render(); }); });
+  head.addEventListener('click', e => { const yr = e.target.closest('[data-yr]'); if (yr) return go('anno-' + yr.dataset.yr); const h = e.target.closest('[data-ci]'); if (h && o.onHead) o.onHead(+h.dataset.ci); });
+  size(); render();
+  if (window._vgRO) window._vgRO.disconnect();
+  const ro = new ResizeObserver(() => { if (!sc.isConnected) return ro.disconnect(); size(); last = ''; render(); }); ro.observe(document.body); window._vgRO = ro;
+  if (o.keepScroll) { sc.scrollLeft = o.keepScroll[0]; sc.scrollTop = o.keepScroll[1]; }
+  return sc;
+}
+// tabella ordinabile su griglia virtuale
+function sortableGrid(host, cols, baseRows, o) {
+  let sortCi = o.sortCi, dir = o.sortDir || 'desc', sc = null;
+  const draw = () => {
+    const c = cols[sortCi]; let rows = baseRows.slice();
+    if (c && c.v) {
+      const m = dir === 'asc' ? 1 : -1;
+      rows.sort((a, b) => {
+        let x = c.v(a), y = c.v(b);
+        const nx = x == null || x === '', ny = y == null || y === '';
+        if (nx && ny) return 0; if (nx) return 1; if (ny) return -1;
+        return (typeof x === 'string' ? x.localeCompare(y) : x - y) * m || (o.tie ? o.tie(a, b) : 0);
+      });
+    }
+    sc = vgrid(host, cols, rows, (r, j, i) => cols[j].f(r, i), { frozen: o.frozen, sortCi, sortDir: dir, rowH: o.rowH,
+      onHead: ci => { if (!cols[ci].v) return; if (ci === sortCi) dir = dir === 'asc' ? 'desc' : 'asc'; else { sortCi = ci; dir = cols[ci].asc ? 'asc' : 'desc'; } draw(); } });
+  };
+  draw();
+}
+
+// ---------- router ----------
+let page = '', tabState = {};
+function go(h) { location.hash = h; }
+function route() {
+  const h = (location.hash || '#albo-piloti').slice(1) || 'albo-piloti';
+  page = h;
+  document.querySelectorAll('nav.menu a').forEach(a => a.classList.toggle('on', h === a.dataset.p || (a.dataset.p !== 'anno' && h.startsWith(a.dataset.p + '-')) || (a.dataset.p === 'anno' && /^anno/.test(h)) || (a.dataset.p === 'circuiti' && /^circuito-/.test(h))));
+  $('nav.menu').classList.remove('open');
+  const main = $('#main');
+  $('#newdata').hidden = true;
+  if (h !== 'impostazioni' && h !== 'regolamenti' && (!M || M.empty)) { main.innerHTML = welcome(); return; }
+  let m;
+  if (h === 'albo-piloti') pageAlboPiloti(main);
+  else if (h === 'storico-piloti') pageStorico(main, 'd');
+  else if (h === 'albo-scuderie') pageAlboScuderie(main);
+  else if (h === 'storico-scuderie') pageStorico(main, 'c');
+  else if (h === 'anno') pageYears(main);
+  else if ((m = h.match(/^anno-(\d{4})$/))) pageYear(main, +m[1]);
+  else if (h === 'circuiti') pageCircuits(main);
+  else if ((m = h.match(/^circuito-(.+)$/))) pageCircuit(main, m[1]);
+  else if (h === 'regolamenti') pageRegs(main);
+  else if (h === 'whatif') pageWhatIf(main);
+  else if (h === 'impostazioni') pageSettings(main);
+  else pageAlboPiloti(main);
+  if (Sync.running && h !== 'impostazioni') main.insertAdjacentHTML('afterbegin', `<div class="banner"><b>Download dei dati in corso.</b> Le statistiche si completano man mano.${syncBox()}</div>`);
+  window.scrollTo(0, 0);
+}
+
+function welcome() {
+  const run = Sync.running;
+  return `<h1>F1 Historic</h1><p class="mut" style="margin-top:-6px">Tutti i risultati della Formula 1 dal 1950 a oggi</p>
+  <div class="card" style="max-width:760px">
+   <p>Per iniziare l'app scarica tutti i risultati ufficiali (gare, sprint, qualifiche e classifiche) dall'API pubblica <b>Jolpica-F1</b> e li salva in questo browser. Dopo il primo download si aggiorna da sola scaricando solo la stagione in corso.</p>
+   <p class="mut small">Il primo download richiede circa 600 richieste. L'API ne consente 500 all'ora, quindi può servire da qualche minuto fino a circa un'ora: i dati vengono salvati stagione per stagione e puoi chiudere la pagina e riprendere in seguito.</p>
+   ${run ? syncBox() : `<button class="btn pri" id="startSync">Scarica lo storico completo</button>
+   <p class="mut small">Hai un export di questa app? Caricalo da <a href="#impostazioni">Impostazioni</a> per partire subito.</p>`}
+  </div>`;
+}
+function syncBox() {
+  const pct = Sync.total ? Math.round(Sync.done / Sync.total * 100) : 0;
+  return `<div id="syncbox"><div class="prog"><i style="width:${pct}%"></i></div>
+   <div class="small">${esc(Sync.msg)} · ${Sync.done}/${Sync.total} passaggi · ${Sync.req} richieste</div>
+   ${Sync.wait ? `<div class="small" style="color:#f5a623">${esc(Sync.wait)}</div>` : ''}
+   ${Sync.running ? '<button class="btn sm" id="stopSync" style="margin-top:6px">Interrompi</button>' : ''}</div>`;
+}
+
+// ---------- Albo d'oro Piloti ----------
+const STATS_D = [['races', 'Gare', 'Gare corse'], ['poles', 'Pole', 'Pole Position'], ['wins', 'Vitt.', 'Vittorie'], ['pod', 'Podi', 'Podi'], ['ret', 'Rit.', 'Ritiri'], ['sr', 'Sprint', 'Gare Sprint'], ['sp', 'Pole Spr.', 'Pole Position Sprint'], ['sw', 'Vitt. Spr.', 'Vittorie Sprint'], ['spod', 'Podi Spr.', 'Podi Sprint'], ['sret', 'Rit. Spr.', 'Ritiri Sprint']];
+function statCols(get) { return STATS_D.map(([k, l, t]) => ({ l, t, w: /^s(r|p|w|pod|ret)$/.test(k) ? 76 : 62, v: r => get(r)[k], f: r => zn(get(r)[k]) })); }
+function pageAlboPiloti(main) {
+  main.innerHTML = `<h1>Albo d'oro Piloti</h1><div class="toolbar"><input type="search" id="q" placeholder="Cerca pilota o nazionalità…" style="width:260px"><label><input type="checkbox" id="act"> Solo in attività (${M.lastYear})</label><span class="mut small" id="cnt"></span></div><div id="g"></div>`;
+  const cols = [
+    { l: '#', w: 44, f: (r, i) => i + 1 },
+    { l: 'Pilota', w: 200, asc: 1, v: r => D.drivers[r]?.fn || r, f: r => dl(r), cls: 'l' },
+    { l: 'Nazionalità', w: 120, asc: 1, v: r => natIt(D.drivers[r]?.nat), f: r => esc(natIt(D.drivers[r]?.nat)), cls: 'l' },
+    { l: 'WDC', t: 'Campionati del Mondo vinti', w: 66, v: r => M.dc[r].titles, f: r => M.dc[r].titles ? `<b class="champ">${M.dc[r].titles}</b>` : zn(0) },
+    { l: 'Anni', t: 'Stagioni disputate', w: 116, v: r => M.dc[r].years.length, f: r => { const y = M.dc[r].years; return `${y.length} (${y[0]}${y.length > 1 ? '-' + y[y.length - 1] : ''})`; } },
+    ...statCols(r => M.dc[r]),
+    { l: 'Punti', w: 74, v: r => M.dc[r].pts, f: r => fmtPts(M.dc[r].pts) },
+    { l: 'Media gara', t: 'Piazzamento medio in gara (solo arrivi classificati)', w: 80, asc: 1, v: r => avg(M.dc[r].sPos, M.dc[r].nPos), f: r => fmtAvg(avg(M.dc[r].sPos, M.dc[r].nPos)) },
+    { l: 'Media qualifica', t: 'Piazzamento medio in qualifica (griglia di partenza dove la qualifica non è disponibile)', w: 92, asc: 1, v: r => avg(M.dc[r].sQ, M.dc[r].nQ), f: r => fmtAvg(avg(M.dc[r].sQ, M.dc[r].nQ)) },
+    ...[['first', 'Esordio F1'], ['last', 'Ultima gara'], ['firstWin', 'Prima vittoria'], ['firstPod', 'Primo podio']].map(([k, l]) => ({ l, w: 310, cls: 'l', asc: 1, v: r => M.dc[r][k]?.date, f: r => M.dc[r][k] ? `<a class="lk" data-race="${M.dc[r][k].key}" style="font-weight:400" title="${esc(M.dc[r][k].name)}">${evText(M.dc[r][k], D.drivers[r]?.dob)}</a>` : '—' })),
+    { l: 'Data di nascita', w: 104, asc: 1, v: r => D.drivers[r]?.dob, f: r => fmtDate(D.drivers[r]?.dob) },
+    { l: 'Luogo di nascita', t: 'Disponibile dopo l\'import di F1DB in Impostazioni', w: 230, cls: 'l', asc: 1, v: r => birthPlace(r), f: r => esc(birthPlace(r) || '—') },
+  ];
+  const draw = () => {
+    const q = normName($('#q').value), act = $('#act').checked;
+    const rows = M.drvIds.filter(d => (!q || normName(dName(d) + natIt(D.drivers[d]?.nat)).includes(q)) && (!act || M.dc[d].years.includes(M.lastYear)));
+    $('#cnt').textContent = rows.length + ' piloti';
+    sortableGrid($('#g'), cols, rows, { frozen: 2, sortCi: 3, tie: (a, b) => M.dc[b].wins - M.dc[a].wins || M.dc[b].pts - M.dc[a].pts });
+  };
+  $('#q').oninput = draw; $('#act').onchange = draw; draw();
+}
+function birthPlace(d) { const e = D.enrich && D.enrich.drv[d]; return e ? [e.pob, e.cob].filter(Boolean).join(', ') : ''; }
+
+// ---------- Albo d'oro Scuderie ----------
+function pageAlboScuderie(main) {
+  main.innerHTML = `<h1>Albo d'oro Scuderie</h1><div class="toolbar"><input type="search" id="q" placeholder="Cerca scuderia…" style="width:260px"><label><input type="checkbox" id="act"> Solo in attività (${M.lastYear})</label><span class="mut small" id="cnt"></span></div><div id="g"></div>`;
+  const cols = [
+    { l: '#', w: 44, f: (r, i) => i + 1 },
+    { l: 'Scuderia', w: 200, asc: 1, v: r => cName(r), f: r => cl(r), cls: 'l' },
+    { l: 'Nazionalità', w: 120, asc: 1, v: r => natIt(D.cons[r]?.nat), f: r => esc(natIt(D.cons[r]?.nat)), cls: 'l' },
+    { l: 'WCC', t: 'Campionati Costruttori vinti (dal 1958)', w: 66, v: r => M.cc[r].titles, f: r => M.cc[r].titles ? `<b class="champ">${M.cc[r].titles}</b>` : zn(0) },
+    { l: 'Anni', w: 116, v: r => M.cc[r].years.length, f: r => { const y = M.cc[r].years; return `${y.length} (${y[0]}${y.length > 1 ? '-' + y[y.length - 1] : ''})`; } },
+    ...statCols(r => M.cc[r]),
+    { l: 'Doppiette', w: 74, v: r => M.cc[r].dbl, f: r => zn(M.cc[r].dbl) },
+    { l: 'Punti', t: 'Punti Mondiale Costruttori (dal 1958)', w: 80, v: r => M.cc[r].pts, f: r => fmtPts(M.cc[r].pts) },
+    { l: 'Media gara', w: 80, asc: 1, v: r => avg(M.cc[r].sPos, M.cc[r].nPos), f: r => fmtAvg(avg(M.cc[r].sPos, M.cc[r].nPos)) },
+    { l: 'Media qualifica', w: 92, asc: 1, v: r => avg(M.cc[r].sQ, M.cc[r].nQ), f: r => fmtAvg(avg(M.cc[r].sQ, M.cc[r].nQ)) },
+    ...[['first', 'Esordio F1'], ['last', 'Ultima gara'], ['firstWin', 'Prima vittoria'], ['firstPod', 'Primo podio']].map(([k, l]) => ({ l, w: 230, cls: 'l', asc: 1, v: r => M.cc[r][k]?.date, f: r => M.cc[r][k] ? `<a class="lk" data-race="${M.cc[r][k].key}" style="font-weight:400">${evText(M.cc[r][k])}</a>` : '—' })),
+  ];
+  const draw = () => {
+    const q = normName($('#q').value), act = $('#act').checked;
+    const rows = M.conIds.filter(c => (!q || normName(cName(c)).includes(q)) && (!act || M.cc[c].years.includes(M.lastYear)));
+    $('#cnt').textContent = rows.length + ' scuderie';
+    sortableGrid($('#g'), cols, rows, { frozen: 2, sortCi: 3, tie: (a, b) => M.cc[b].wins - M.cc[a].wins || M.cc[b].races - M.cc[a].races });
+  };
+  $('#q').oninput = draw; $('#act').onchange = draw; draw();
+}
+
+// ---------- Storico (piloti / scuderie) ----------
+function pageStorico(main, kind) {
+  const isD = kind === 'd', yrs = M.years.slice().reverse();
+  const st = tabState['st' + kind] || (tabState['st' + kind] = { from: yrs[yrs.length - 1], to: yrs[0], q: '' });
+  const opt = sel => yrs.map(y => `<option ${y === sel ? 'selected' : ''}>${y}</option>`).join('');
+  main.innerHTML = `<h1>Storico ${isD ? 'Piloti' : 'Scuderie'}</h1>
+  <div class="toolbar"><input type="search" id="q" value="${esc(st.q)}" placeholder="Cerca ${isD ? 'pilota' : 'scuderia'}…" style="width:240px">
+  <label>Dal <select id="yf">${opt(st.from)}</select></label><label>al <select id="yt">${opt(st.to)}</select></label>
+  <span class="mut small" id="cnt"></span><span class="mut small">Clic sull'intestazione di una colonna per ordinare, sull'anno per aprire la stagione.</span></div><div id="g"></div>`;
+  const SUB = isD
+    ? [['teams', 'Scuderia', 130], ['races', 'Gare'], ['poles', 'Pole'], ['wins', 'Vitt.'], ['pod', 'Podi'], ['ret', 'Rit.'], ['sr', 'Sprint', 0, 1], ['sp', 'Pole Spr.', 0, 1], ['sw', 'Vitt. Spr.', 0, 1], ['spod', 'Podi Spr.', 0, 1], ['sret', 'Rit. Spr.', 0, 1], ['pts', 'Punti', 58], ['pos', 'Pos.', 48]]
+    : [['races', 'Gare'], ['poles', 'Pole'], ['wins', 'Vitt.'], ['pod', 'Podi'], ['ret', 'Rit.'], ['sr', 'Sprint', 0, 1], ['sp', 'Pole Spr.', 0, 1], ['sw', 'Vitt. Spr.', 0, 1], ['spod', 'Podi Spr.', 0, 1], ['sret', 'Rit. Spr.', 0, 1], ['dbl', 'Doppiette', 66], ['pts', 'Punti', 58], ['pos', 'Pos.', 48]];
+  const TT = { races: 'Gare', poles: 'Pole Position', wins: 'Vittorie', pod: 'Podi', ret: 'Ritiri', sr: 'Gare Sprint', sp: 'Pole Position Sprint', sw: 'Vittorie Sprint', spod: 'Podi Sprint', sret: 'Ritiri Sprint', dbl: 'Doppiette (1° e 2° posto nella stessa gara)', pts: 'Punti', pos: 'Posizione finale nel campionato', teams: 'Scuderia' };
+  const per = isD ? M.dy : M.cy;
+  const draw = () => {
+    st.q = $('#q').value; st.from = +$('#yf').value; st.to = +$('#yt').value;
+    if (st.from > st.to) [st.from, st.to] = [st.to, st.from];
+    const ys = yrs.filter(y => y >= st.from && y <= st.to);
+    const cols = [{ l: isD ? 'Pilota' : 'Scuderia', w: window.innerWidth < 600 ? 140 : 190, cls: 'l', asc: 1, v: r => isD ? (D.drivers[r]?.fn || r) : cName(r), f: r => isD ? dl(r) : cl(r) }];
+    for (const y of ys) {
+      const subs = SUB.filter(s => !s[3] || M.yi[y].hasSprint);
+      subs.forEach((s, i) => {
+        const [k, l, w] = s, last = i === subs.length - 1;
+        cols.push({ g: y, ga: `data-yr="${y}" style="cursor:pointer"`, l, t: `${TT[k]} ${y}`, w: w || (s[3] ? 68 : 50), cls: (k === 'teams' ? 'l ' : '') + (last ? 'ye' : ''), asc: k === 'pos' || k === 'teams',
+          v: r => { const o = per[r] && per[r][y]; if (!o) return null; return k === 'teams' ? o.teams.map(cName).join(' / ') : k === 'pos' ? (o.pos ?? null) : o[k]; },
+          f: r => {
+            const o = per[r] && per[r][y]; if (!o) return '';
+            if (k === 'teams') { const t = o.teams.map(cName).join(' / '); return `<span title="${esc(t)}">${esc(t)}</span>`; }
+            if (k === 'pts') return o.pts == null ? '<span class="z">—</span>' : fmtPts(o.pts);
+            if (k === 'pos') { const champ = o.pos === 1 && M.yi[y].complete; return o.pos != null ? `<span class="${champ ? 'champ' : ''}">${o.pos}°</span>` : `<span class="z">${esc(o.pt || '—')}</span>`; }
+            return zn(o[k]);
+          } });
+      });
+    }
+    const q = normName(st.q);
+    const ids = (isD ? M.drvIds : M.conIds).filter(id => ys.some(y => per[id] && per[id][y]) && (!q || normName(isD ? dName(id) : cName(id)).includes(q)));
+    $('#cnt').textContent = `${ids.length} ${isD ? 'piloti' : 'scuderie'} · ${ys.length} stagioni`;
+    const lastY = id => { for (const y of ys) if (per[id] && per[id][y]) return y; return 0; };
+    ids.sort((a, b) => { const la = lastY(a), lb = lastY(b); if (la !== lb) return lb - la; const pa = per[a][la].pos ?? 999, pb = per[b][lb].pos ?? 999; return pa - pb || (per[b][lb].pts || 0) - (per[a][la].pts || 0); });
+    sortableGrid($('#g'), cols, ids, { frozen: 1, sortCi: -1 });
+  };
+  $('#q').oninput = draw; $('#yf').onchange = draw; $('#yt').onchange = draw; draw();
+}
+
+// ---------- Anno ----------
+function pageYears(main) {
+  const ys = M.years.slice().reverse();
+  main.innerHTML = `<h1>Scegli la stagione</h1><div class="years">${ys.map(y => { const yi = M.yi[y]; const ch = yi.champ ? dName(yi.champ) : (yi.complete ? '' : 'in corso'); return `<a href="#anno-${y}"><b>${y}</b><span>${esc(ch)}</span><span>${yi.cChamp ? esc(cName(yi.cChamp)) : '&nbsp;'}</span></a>`; }).join('')}</div>`;
+}
+function resCell(race, rows, d, sprint) {
+  if (!race.done && !sprint) return '';
+  if (!rows.length) return '';
+  const st = rows.filter(isStart);
+  let x = rows.filter(isNum).sort((a, b) => a.p - b.p)[0] || st[0] || rows[0];
+  let txt, cls;
+  if (isNum(x)) { txt = x.p; cls = x.p <= 3 ? 'r' + x.p : (x.pts > 0 ? 'rp' : 'rf'); }
+  else { const m = { R: 'Rit', N: 'NC', D: 'Squal', E: 'Escl', W: 'Rit.', F: 'NQ' }; txt = m[x.pt] || x.pt; cls = x.pt === 'F' || x.pt === 'W' ? 'rq' : (x.pt === 'D' || x.pt === 'E') ? 'rd' : 'rr'; if (x.pt === 'W' && !isStart(x)) txt = 'NP'; }
+  let marks = '';
+  if (!sprint && race.pole && race.pole.d === d && race.pole.c === x.c) marks += '<sup class="m">P</sup>';
+  if (!sprint && race.fl && race.fl.d === d) marks += '<sup class="m">GV</sup>';
+  if (sprint && race.sPole && race.sPole.d === d) marks += '<sup class="m">P</sup>';
+  return `<span class="r ${cls}" title="${esc(x.s || '')}${x.pts ? ' · ' + fmtPts(x.pts) + ' pt' : ''}">${txt}${marks}</span>`;
+}
+function short(race) { return (race.name || '').replace(/Grand Prix|Gran Premio|Grande Prémio/gi, '').trim().slice(0, 3).toUpperCase(); }
+
+function pageYear(main, y) {
+  const yi = M.yi[y];
+  if (!yi) { main.innerHTML = `<h1>${y}</h1><p class="mut">Nessun dato per questa stagione.</p>`; return; }
+  const tab = tabState.year || 'class';
+  const prev = M.yi[y - 1] ? `<a class="btn sm" href="#anno-${y - 1}">◀ ${y - 1}</a>` : '', next = M.yi[y + 1] ? `<a class="btn sm" href="#anno-${y + 1}">${y + 1} ▶</a>` : '';
+  const TABS = [['class', 'Classifiche'], ['entry', 'Scuderie e Piloti'], ['races', 'Gare'], ['reg', 'Regolamento'], ['ev', 'Eventi salienti']];
+  main.innerHTML = `<div class="yearhead"><h1 style="margin:0">Stagione ${y}</h1>${prev}${next}<a class="btn sm" href="#anno">Tutte le stagioni</a>
+   ${yi.complete ? '' : '<span class="tag win">In corso</span>'}</div>
+   <div class="tabs">${TABS.map(([k, l]) => `<button data-tab="${k}" class="${k === tab ? 'on' : ''}">${l}</button>`).join('')}</div><div id="yc"></div>`;
+  main.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { tabState.year = b.dataset.tab; pageYear(main, y); });
+  const yc = $('#yc');
+  if (tab === 'class') yc.innerHTML = yearClass(yi);
+  else if (tab === 'entry') yc.innerHTML = yearEntry(yi);
+  else if (tab === 'races') yc.innerHTML = yearRaces(yi);
+  else if (tab === 'reg') yc.innerHTML = yearReg(yi);
+  else yc.innerHTML = yearEvents(yi);
+}
+function yearClass(yi) {
+  const y = yi.y;
+  let dst = yi.dst;
+  if (!dst.length) dst = Object.keys(M.dy).filter(d => M.dy[d][y]).map(d => ({ d, p: null, pt: '', pts: M.dy[d][y].pts, w: M.dy[d][y].wins, cs: M.dy[d][y].teams })).sort((a, b) => b.pts - a.pts).map((e, i) => (e.p = i + 1, e));
+  const dt = `<table class="t"><thead><tr><th class="n">Pos.</th><th>Pilota</th><th>Nazionalità</th><th>Scuderia</th><th class="n">Vittorie</th><th class="n">Punti</th></tr></thead><tbody>${dst.map(e => `<tr><td class="n ${e.p === 1 && yi.complete ? 'champ' : ''}">${e.p ?? esc(e.pt)}</td><td>${dl(e.d)}</td><td>${esc(natIt(D.drivers[e.d]?.nat))}</td><td>${(e.cs || []).map(cl).join(' / ')}</td><td class="n">${e.w}</td><td class="n"><b>${fmtPts(e.pts)}</b></td></tr>`).join('')}</tbody></table>`;
+  const ct = yi.cst.length ? `<table class="t"><thead><tr><th class="n">Pos.</th><th>Scuderia</th><th class="n">Vittorie</th><th class="n">Punti</th></tr></thead><tbody>${yi.cst.map(e => `<tr><td class="n ${e.p === 1 && yi.complete ? 'champ' : ''}">${e.p ?? esc(e.pt)}</td><td>${cl(e.c)}</td><td class="n">${e.w}</td><td class="n"><b>${fmtPts(e.pts)}</b></td></tr>`).join('')}</tbody></table>`
+    : `<p class="mut">Il Mondiale Costruttori è nato nel 1958.</p>`;
+  return `<div class="grid2"><div class="card"><h2 style="margin-top:0">Piloti</h2><div class="scroll">${dt}</div></div><div class="card"><h2 style="margin-top:0">Scuderie</h2><div class="scroll">${ct}</div></div></div>`;
+}
+function entryInfo(y, c, d) { const E = D.enrich; if (!E) return null; return E.ent[`${y}|${c}|${d}`] || E.ent[`${y}|${c}`] || null; }
+function yearEntry(yi) {
+  const y = yi.y, races = yi.races, sprs = races.filter(r => r.hasSpr);
+  const pairs = {}, order = [];
+  for (const r of races) for (const x of r.res.concat(r.spr)) if (isStart(x)) { const k = x.c + '|' + x.d; if (!pairs[k]) { pairs[k] = { c: x.c, d: x.d, n: new Set() }; order.push(k); } if (x.n) pairs[k].n.add(x.n); }
+  const cpos = c => { const e = yi.cst.find(z => z.c === c); if (e && e.p) return e.p; const ps = order.filter(k => pairs[k].c === c).map(k => (yi.dst.find(z => z.d === pairs[k].d) || {}).p || 999); return 100 + Math.min(...ps); };
+  const cons = [...new Set(order.map(k => pairs[k].c))].sort((a, b) => cpos(a) - cpos(b));
+  const tyres = D.enrich && D.enrich.tyN && D.enrich.tyN[y] > 1;
+  const S = ['Gare', 'Pole', 'Vitt.', 'Podi', 'Rit.'].concat(yi.hasSprint ? ['Sprint', 'Pole Spr.', 'Vitt. Spr.', 'Podi Spr.', 'Rit. Spr.'] : []);
+  let html = `<p class="mut small">P = pole position · GV = giro più veloce · NQ = non qualificato · NC = non classificato · Rit = ritirato. Passa sopra a un risultato per vedere stato e punti.${D.enrich ? '' : ' Telaio, power unit e gomme compaiono dopo l\'import di F1DB in Impostazioni.'}</p>
+  <div class="scroll" style="max-height:75vh"><table class="t"><thead><tr><th class="fz">Scuderia</th><th>Telaio</th><th>Power Unit / Motore</th>${tyres ? '<th>Gomme</th>' : ''}<th class="c">N°</th><th>Nazionalità</th><th>Pilota</th><th class="c">Abbr.</th>
+  ${races.map(r => `<th class="c" title="${esc(r.name)} · ${fmtDate(r.date)}"><a class="lk" data-race="${r.key}">${r.r}<br>${esc(short(r))}</a></th>`).join('')}
+  ${sprs.map(r => `<th class="c" title="Sprint ${esc(r.name)}"><a class="lk" data-race="${r.key}" data-tab="spr">S${r.r}<br>${esc(short(r))}</a></th>`).join('')}
+  ${S.map(s => `<th class="n">${s}</th>`).join('')}</tr></thead><tbody>`;
+  for (const c of cons) {
+    const ks = order.filter(k => pairs[k].c === c);
+    ks.forEach((k, i) => {
+      const { d } = pairs[k], inf = entryInfo(y, c, d);
+      const s = { races: 0, poles: 0, wins: 0, pod: 0, ret: 0, sr: 0, sp: 0, sw: 0, spod: 0, sret: 0 };
+      const cells = races.map(r => {
+        const rows = r.res.filter(x => x.d === d && x.c === c);
+        if (rows.some(isStart)) { s.races++; const b = rows.filter(isNum).map(x => x.p); const bb = b.length ? Math.min(...b) : 99; if (bb === 1) s.wins++; if (bb <= 3) s.pod++; if (rows.filter(isStart).every(isRet)) s.ret++; }
+        if (r.pole && r.pole.d === d && r.pole.c === c) s.poles++;
+        return `<td class="c">${resCell(r, rows, d)}</td>`;
+      }).join('');
+      const scells = sprs.map(r => {
+        const rows = r.spr.filter(x => x.d === d && x.c === c);
+        if (rows.some(isStart)) { s.sr++; if (rows.some(x => isNum(x) && x.p === 1)) s.sw++; if (rows.some(x => isNum(x) && x.p <= 3)) s.spod++; if (rows.filter(isStart).every(isRet)) s.sret++; }
+        if (r.sPole && r.sPole.d === d && r.sPole.c === c) s.sp++;
+        return `<td class="c">${resCell(r, rows, d, true)}</td>`;
+      }).join('');
+      const vals = [s.races, s.poles, s.wins, s.pod, s.ret].concat(yi.hasSprint ? [s.sr, s.sp, s.sw, s.spod, s.sret] : []);
+      html += `<tr>${i === 0 ? `<td class="fz team" rowspan="${ks.length}">${cl(c)}</td>` : ''}<td>${esc(inf ? inf.ch.join(' / ') : '—')}</td><td>${esc(inf ? inf.en.join(' / ') : '—')}</td>${tyres ? `<td>${esc(inf ? inf.ty.join(' / ') : '—')}</td>` : ''}
+      <td class="c">${esc([...pairs[k].n].join(', '))}</td><td>${esc(natIt(D.drivers[d]?.nat))}</td><td>${dl(d)}</td><td class="c">${esc(dAbbr(d))}</td>${cells}${scells}${vals.map(v => `<td class="n">${zn(v)}</td>`).join('')}</tr>`;
+    });
+  }
+  return html + '</tbody></table></div>';
+}
+const who = (o, t) => o ? `${dl(o.d)} <span class="mut small">${esc(cName(o.c))}${t ? ' · ' + esc(t) : ''}</span>` : '—';
+function yearRaces(yi) {
+  let html = `<div class="scroll"><table class="t"><thead><tr><th class="n">N°</th><th>Gara</th><th>Nazione</th><th>Circuito</th><th>Data</th><th class="n">Giri</th><th>Pole man</th><th>Giro più veloce</th><th>1°</th><th>2°</th><th>3°</th><th></th></tr></thead><tbody>`;
+  for (const r of yi.races) {
+    const C = D.circuits[r.circ] || {};
+    const pod = i => r.podium && r.podium[i].length ? r.podium[i].map(x => who(x)).join('<br>') : '—';
+    html += `<tr><td class="n"><b>${r.r}</b></td><td>${esc(r.name)}</td><td>${esc(ctyIt(C.country))}</td><td><a class="lk" href="#circuito-${esc(r.circ)}" style="font-weight:400">${esc(C.name || '')}</a></td><td>${fmtDate(r.date)}</td><td class="n">${r.done ? (r.laps ?? '') : ''}</td>
+    <td>${r.done || r.pole ? who(r.pole, r.pole && r.pole.t) : '<span class="mut">da disputare</span>'}</td><td>${who(r.fl, r.fl && r.fl.t)}</td><td>${pod(0)}</td><td>${pod(1)}</td><td>${pod(2)}</td>
+    <td>${r.done ? `<button class="btn sm" data-race="${r.key}">Risultati</button>` : ''}</td></tr>`;
+    if (r.hasSpr) {
+      const sp = i => r.sPodium[i].length ? r.sPodium[i].map(x => who(x)).join('<br>') : '—';
+      html += `<tr><td class="n">${r.r} S</td><td><span class="tag win">Sprint</span> ${esc(r.name)}</td><td>${esc(ctyIt(C.country))}</td><td>${esc(C.name || '')}</td><td>${fmtDate(r.sprintDate)}</td><td class="n">${r.sLaps ?? ''}</td>
+      <td>${r.spr.length ? who(r.sPole) : '<span class="mut">da disputare</span>'}</td><td>${who(r.sFl, r.sFl && r.sFl.t)}</td><td>${sp(0)}</td><td>${sp(1)}</td><td>${sp(2)}</td>
+      <td>${r.spr.length ? `<button class="btn sm" data-race="${r.key}" data-tab="spr">Risultati</button>` : ''}</td></tr>`;
+    }
+  }
+  return html + '</tbody></table></div><p class="mut small">Il giro più veloce è disponibile dal 2004 (anni precedenti con l\'import F1DB). Prima del 1994 la pole è ricavata dalla griglia di partenza se mancano le qualifiche.</p>';
+}
+function pointsUsed(yi) {
+  const by = {};
+  for (const r of yi.races) for (const x of r.res) if (isNum(x) && x.p <= 10) { const v = x.pts - (r.fl && r.fl.d === x.d && yi.y >= 2019 && yi.y <= 2024 ? 1 : 0); (by[x.p] || (by[x.p] = {}))[v] = ((by[x.p] || {})[v] || 0) + 1; }
+  const out = [];
+  for (let p = 1; p <= 10; p++) { const o = by[p]; if (!o) break; const v = +Object.entries(o).sort((a, b) => b[1] - a[1])[0][0]; if (!v) break; out.push(v); }
+  return out;
+}
+function yearReg(yi) {
+  const e = eraOf(yi.y), pu = pointsUsed(yi);
+  return `<div class="card era"><h2 style="margin-top:0">${esc(e ? e.title : '')} <span class="mut small">(${e ? e.from + '–' + (e.to || 'oggi') : ''})</span></h2>
+   ${YEAR_NOTES[yi.y] ? `<p><b>Novità ${yi.y}:</b> ${YEAR_NOTES[yi.y].map(esc).join(' ')}</p>` : ''}
+   <ul>${(e ? e.items : []).map(i => `<li>${esc(i)}</li>`).join('')}</ul>
+   ${pu.length ? `<p><b>Punti assegnati in gara nel ${yi.y}</b> (ricavati dai risultati): ${pu.map((v, i) => `${i + 1}° ${fmtPts(v)}`).join(' · ')}</p>` : ''}</div>
+   <p class="mut small">Sintesi dei regolamenti sportivi e tecnici principali. Per il testo integrale consulta i regolamenti ufficiali FIA.</p>`;
+}
+const TAGL = { title: 'Titolo', win: 'Vittoria', team: 'Scuderia', pole: 'Pole', pod: 'Podio', rec: 'Impresa', deb: 'Piloti', ret: 'Ritiro' };
+function yearEvents(yi) {
+  const list = yi.races.filter(r => r.done && r.events.length);
+  if (!list.length) return '<p class="mut">Nessun evento disponibile.</p>';
+  return `<p class="mut small">Eventi ricavati automaticamente dai risultati.</p>` + list.map(r => `<div class="card"><h3 style="margin-top:0">${r.r}. <a class="lk" data-race="${r.key}">${esc(r.name)}</a> <span class="mut small">${fmtDate(r.date)}</span></h3>
+   ${r.events.map(e => `<div class="ev"><span class="tag ${e.t}">${TAGL[e.t] || ''}</span><span>${esc(e.x)}</span></div>`).join('')}</div>`).join('');
+}
+
+// ---------- modale gara ----------
+function openRace(key, tab) {
+  const r = M.raceByKey[key]; if (!r) return;
+  const T = [['q', 'Qualifiche'], ['grid', 'Griglia di partenza'], ['res', 'Gara'], ['fl', 'Giri veloci']];
+  if (r.hasSpr) T.push(['sgrid', 'Griglia Sprint'], ['spr', 'Sprint'], ['sfl', 'Giri veloci Sprint']);
+  tab = tab || 'res';
+  const C = D.circuits[r.circ] || {};
+  const head = `<h2 style="margin-top:0">${r.y} · ${r.r}. ${esc(r.name)}</h2><p class="mut">${esc(C.name || '')}, ${esc(C.loc || '')} (${esc(ctyIt(C.country))}) · ${fmtDate(r.date)}${r.url ? ` · <a href="${esc(r.url)}" target="_blank" rel="noopener">Wikipedia</a>` : ''}</p>
+   <div class="tabs">${T.map(([k, l]) => `<button data-rt="${k}" class="${k === tab ? 'on' : ''}">${l}</button>`).join('')}</div>`;
+  let body = '';
+  const tbl = (hd, rows) => `<div class="scroll" style="max-height:62vh"><table class="t"><thead><tr>${hd.map(h => `<th class="${h[1] || ''}">${h[0]}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
+  const ptxt = x => isNum(x) ? x.p : ({ R: 'Rit', N: 'NC', D: 'Squal', E: 'Escl', W: 'NP', F: 'NQ' }[x.pt] || x.pt);
+  const resTbl = rows => rows.length ? tbl([['Pos.', 'n'], ['N°', 'c'], ['Pilota'], ['Scuderia'], ['Giri', 'n'], ['Tempo / Stato'], ['Griglia', 'n'], ['Punti', 'n']],
+    rows.map(x => `<tr><td class="n"><b>${ptxt(x)}</b></td><td class="c">${esc(x.n)}</td><td>${dl(x.d)}</td><td>${cl(x.c)}</td><td class="n">${x.l}</td><td>${esc(x.t || x.s)}</td><td class="n">${x.g === 0 ? 'Box' : (x.g ?? '')}</td><td class="n">${x.pts ? fmtPts(x.pts) : ''}</td></tr>`)) : '<p class="mut">Risultati non disponibili.</p>';
+  const gridTbl = rows => { const g = rows.filter(x => x.g != null && isStart(x)).sort((a, b) => (a.g || 999) - (b.g || 999)); return g.length ? tbl([['Pos.', 'n'], ['N°', 'c'], ['Pilota'], ['Scuderia']], g.map(x => `<tr><td class="n"><b>${x.g || 'Box'}</b></td><td class="c">${esc(x.n)}</td><td>${dl(x.d)}</td><td>${cl(x.c)}</td></tr>`)) : '<p class="mut">Griglia non disponibile.</p>'; };
+  const flTbl = (rows, fb) => {
+    const f = rows.filter(x => x.fl && x.fl.t).sort((a, b) => (a.fl.r || 999) - (b.fl.r || 999) || lapMs(a.fl.t) - lapMs(b.fl.t));
+    if (f.length) return tbl([['Pos.', 'n'], ['Pilota'], ['Scuderia'], ['Giro', 'n'], ['Tempo']], f.map((x, i) => `<tr><td class="n"><b>${i + 1}</b></td><td>${dl(x.d)}</td><td>${cl(x.c)}</td><td class="n">${x.fl.lap ?? ''}</td><td>${esc(x.fl.t)}</td></tr>`));
+    if (fb) return `<p>Giro più veloce: ${who(fb, fb.t)}${fb.lap ? ` (giro ${fb.lap})` : ''}</p><p class="mut small">La classifica completa dei giri veloci è disponibile dal 2004.</p>`;
+    return '<p class="mut">Dati sui giri veloci non disponibili per questa gara (disponibili dal 2004, o con l\'import F1DB).</p>';
+  };
+  if (tab === 'q') {
+    body = r.q.length ? tbl([['Pos.', 'n'], ['N°', 'c'], ['Pilota'], ['Scuderia'], ['Q1'], ['Q2'], ['Q3']].concat(r.q.some(x => x.t) ? [['Tempo']] : []),
+      r.q.slice().sort((a, b) => (a.p || 999) - (b.p || 999)).map(x => `<tr><td class="n"><b>${x.p ?? ''}</b></td><td class="c">${esc(x.n)}</td><td>${dl(x.d)}</td><td>${x.c ? cl(x.c) : ''}</td><td>${esc(x.q1)}</td><td>${esc(x.q2)}</td><td>${esc(x.q3)}</td>${r.q.some(z => z.t) ? `<td>${esc(x.t)}</td>` : ''}</tr>`))
+      : '<p class="mut">Qualifiche non disponibili per questa gara: l\'API le fornisce dal 1994. Per gli anni precedenti importa F1DB in Impostazioni; nel frattempo vedi la griglia di partenza.</p>';
+  } else if (tab === 'grid') body = gridTbl(r.res);
+  else if (tab === 'res') body = resTbl(r.res);
+  else if (tab === 'fl') body = flTbl(r.res, r.fl);
+  else if (tab === 'sgrid') body = gridTbl(r.spr);
+  else if (tab === 'spr') body = resTbl(r.spr);
+  else if (tab === 'sfl') body = flTbl(r.spr, r.sFl);
+  showModal(head + body);
+  document.querySelectorAll('[data-rt]').forEach(b => b.onclick = () => openRace(key, b.dataset.rt));
+}
+
+// ---------- profili ----------
+function profile(kind, id) {
+  const isD = kind === 'd', car = isD ? M.dc[id] : M.cc[id], per = isD ? M.dy[id] : M.cy[id];
+  if (!car) return;
+  const info = isD ? D.drivers[id] || {} : D.cons[id] || {};
+  const ys = Object.keys(per || {}).map(Number).sort((a, b) => b - a);
+  const chips = [[isD ? 'Mondiali' : 'Costruttori', car.titles], ['Stagioni', car.years.length], ['Gare', car.races], ['Vittorie', car.wins], ['Pole', car.poles], ['Podi', car.pod], ['Ritiri', car.ret], ['Punti', fmtPts(car.pts)]].concat(isD ? [] : [['Doppiette', car.dbl]]);
+  const sub = isD ? `${esc(natIt(info.nat))}${info.dob ? ' · nato il ' + fmtDate(info.dob) : ''}${birthPlace(id) ? ' a ' + esc(birthPlace(id)) : ''}${info.pn ? ' · numero ' + esc(info.pn) : ''}${info.code ? ' · ' + esc(info.code) : ''}` : esc(natIt(info.nat));
+  const rows = ys.map(y => { const o = per[y]; return `<tr><td><a class="lk" href="#anno-${y}">${y}</a></td>${isD ? `<td>${o.teams.map(cl).join(' / ')}</td>` : ''}<td class="n">${o.races}</td><td class="n">${zn(o.poles)}</td><td class="n">${zn(o.wins)}</td><td class="n">${zn(o.pod)}</td><td class="n">${zn(o.ret)}</td><td class="n">${o.sr ? o.sr + ' / ' + o.sw + ' vitt.' : ''}</td>${isD ? '' : `<td class="n">${zn(o.dbl)}</td>`}<td class="n">${fmtPts(o.pts)}</td><td class="n ${o.pos === 1 && M.yi[y].complete ? 'champ' : ''}">${o.pos != null ? o.pos + '°' : esc(o.pt || '—')}</td></tr>`; });
+  showModal(`<h2 style="margin-top:0">${esc(isD ? dName(id) : cName(id))}</h2><p class="mut">${sub}</p>
+   <div class="chips">${chips.map(([l, v]) => `<div class="chip"><b>${v}</b><span>${l}</span></div>`).join('')}</div>
+   <p class="small">Esordio: ${car.first ? `<a class="lk" data-race="${car.first.key}">${esc(car.first.name)} ${car.first.y}</a>` : '—'} · Ultima gara: ${car.last ? `<a class="lk" data-race="${car.last.key}">${esc(car.last.name)} ${car.last.y}</a>` : '—'}${car.firstWin ? ` · Prima vittoria: <a class="lk" data-race="${car.firstWin.key}">${esc(car.firstWin.name)} ${car.firstWin.y}</a>` : ''}</p>
+   <div class="scroll" style="max-height:55vh"><table class="t"><thead><tr><th>Anno</th>${isD ? '<th>Scuderia</th>' : ''}<th class="n">Gare</th><th class="n">Pole</th><th class="n">Vittorie</th><th class="n">Podi</th><th class="n">Ritiri</th><th class="n">Sprint</th>${isD ? '' : '<th class="n">Doppiette</th>'}<th class="n">Punti</th><th class="n">Pos.</th></tr></thead><tbody>${rows.join('')}</tbody></table></div>
+   ${info.url ? `<p class="small"><a href="${esc(info.url)}" target="_blank" rel="noopener">Scheda su Wikipedia</a></p>` : ''}`);
+}
+
+// ---------- circuiti ----------
+function pageCircuits(main) {
+  const list = Object.values(M.circ).filter(c => c.races.some(r => r.done || r.y >= CUR_YEAR)).map(c => { const ys = c.races.map(r => r.y); return { c, n: c.races.filter(r => r.done).length, f: Math.min(...ys), l: Math.max(...ys) }; }).sort((a, b) => b.l - a.l || b.n - a.n);
+  main.innerHTML = `<h1>Circuiti</h1><div class="toolbar"><input type="search" id="q" placeholder="Cerca circuito, città o nazione…" style="width:300px"></div><div class="scroll"><table class="t"><thead><tr><th>Circuito</th><th>Località</th><th>Nazione</th><th class="n">GP disputati</th><th>Primo</th><th>Ultimo</th><th>Più vittorie</th></tr></thead><tbody id="tb"></tbody></table></div>`;
+  const draw = () => {
+    const q = normName($('#q').value);
+    $('#tb').innerHTML = list.filter(o => { const C = D.circuits[o.c.id] || {}; return !q || normName(C.name + C.loc + C.country + ctyIt(C.country)).includes(q); }).map(o => {
+      const C = D.circuits[o.c.id] || {}, top = topBy(o.c.races, 'd')[0];
+      return `<tr><td><a class="lk" href="#circuito-${esc(o.c.id)}">${esc(C.name)}</a></td><td>${esc(C.loc)}</td><td>${esc(ctyIt(C.country))}</td><td class="n">${o.n}</td><td>${o.f}</td><td>${o.l}</td><td>${top ? dl(top[0]) + ` <span class="mut small">(${top[1]})</span>` : ''}</td></tr>`;
+    }).join('');
+  };
+  $('#q').oninput = draw; draw();
+}
+function topBy(races, k, what = 'win') {
+  const o = {};
+  for (const r of races) { if (!r.done) continue; const arr = what === 'win' ? r.podium[0] : what === 'pole' ? (r.pole ? [r.pole] : []) : r.podium.flat(); for (const x of arr) if (x[k]) o[x[k]] = (o[x[k]] || 0) + 1; }
+  return Object.entries(o).sort((a, b) => b[1] - a[1]);
+}
+function pageCircuit(main, id) {
+  const ci = M.circ[id], C = D.circuits[id];
+  if (!ci || !C) { main.innerHTML = '<p>Circuito non trovato.</p>'; return; }
+  const races = ci.races.slice().sort((a, b) => b.y - a.y || b.r - a.r);
+  const box = (t, arr, f) => `<div class="card"><h3 style="margin-top:0">${t}</h3>${arr.slice(0, 6).map(([k, n]) => `<div>${f(k)} <b>${n}</b></div>`).join('') || '<span class="mut">—</span>'}</div>`;
+  main.innerHTML = `<p><a href="#circuiti" class="small">◀ Tutti i circuiti</a></p><h1>${esc(C.name)}</h1><p class="mut">${esc(C.loc)}, ${esc(ctyIt(C.country))} · ${ci.races.filter(r => r.done).length} Gran Premi${C.url ? ` · <a href="${esc(C.url)}" target="_blank" rel="noopener">Wikipedia</a>` : ''}</p>
+   <div class="grid2" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr))">${box('Più vittorie (piloti)', topBy(ci.races, 'd'), dl)}${box('Più vittorie (scuderie)', topBy(ci.races, 'c'), cl)}${box('Più pole', topBy(ci.races, 'd', 'pole'), dl)}${box('Più podi', topBy(ci.races, 'd', 'pod'), dl)}</div>
+   <h2>Tutte le edizioni</h2><div class="scroll"><table class="t"><thead><tr><th>Anno</th><th>Gara</th><th>Data</th><th>Vincitore</th><th>Pole</th><th>Giro più veloce</th><th></th></tr></thead><tbody>
+   ${races.map(r => `<tr><td><a class="lk" href="#anno-${r.y}">${r.y}</a></td><td>${esc(r.name)}</td><td>${fmtDate(r.date)}</td><td>${r.done ? who(r.podium[0][0]) : '<span class="mut">da disputare</span>'}</td><td>${who(r.pole, r.pole && r.pole.t)}</td><td>${who(r.fl, r.fl && r.fl.t)}</td><td>${r.done ? `<button class="btn sm" data-race="${r.key}">Risultati</button>` : ''}</td></tr>`).join('')}</tbody></table></div>`;
+}
+
+// ---------- storico regolamenti ----------
+function pageRegs(main) {
+  main.innerHTML = `<h1>Storico Regolamenti</h1><p class="mut">Le grandi ere tecniche e sportive della Formula 1, con i sistemi di punteggio usati in ogni periodo.</p>
+  ${REG_ERAS.slice().reverse().map(e => `<div class="card era"><h2 style="margin-top:0">${e.from}–${e.to || 'oggi'} · ${esc(e.title)}</h2><ul>${e.items.map(i => `<li>${esc(i)}</li>`).join('')}</ul>
+   <p class="small">${Object.keys(YEAR_NOTES).map(Number).filter(y => y >= e.from && (!e.to || y <= e.to)).map(y => `<a class="lk" href="#anno-${y}">${y}</a>: ${esc(YEAR_NOTES[y].join(' '))}`).join('<br>')}</p></div>`).join('')}
+  <h2>Sistemi di punteggio</h2><div class="scroll"><table class="t"><thead><tr><th>Periodo</th><th>Punti</th></tr></thead><tbody>${POINT_PRESETS.filter(p => /^p\d/.test(p.id)).map(p => `<tr><td>${esc(p.l.split(':')[0])}</td><td>${esc(p.l.split(':').slice(1).join(':'))}</td></tr>`).join('')}
+  <tr><td>Sprint 2021</td><td>3-2-1</td></tr><tr><td>Sprint 2022–oggi</td><td>8-7-6-5-4-3-2-1</td></tr></tbody></table></div>`;
+}
+
+// ---------- What If ----------
+function pageWhatIf(main) {
+  const w = tabState.wi || (tabState.wi = { y: M.lastYear, preset: 'p2010', custom: '25,18,15,12,10,8,6,4,2,1', fl: 0, flTop: 0, sprint: 'real', sprCustom: '8,7,6,5,4,3,2,1', best: 0 });
+  const ys = M.years.slice().reverse();
+  main.innerHTML = `<h1>What If?</h1><p class="mut">Ricalcola i campionati con un altro sistema di punteggio: cosa sarebbe successo se in quella stagione si fosse usato un regolamento diverso?</p>
+  <div class="card"><div class="row">
+   <label>Stagione <select id="wy"><option value="all" ${w.y === 'all' ? 'selected' : ''}>Tutte le stagioni</option>${ys.map(y => `<option ${y === w.y ? 'selected' : ''}>${y}</option>`).join('')}</select></label>
+   <label>Punteggio <select id="wp">${POINT_PRESETS.map(p => `<option value="${p.id}" ${p.id === w.preset ? 'selected' : ''}>${esc(p.l)}</option>`).join('')}</select></label>
+   <label id="wcl" ${w.preset === 'custom' ? '' : 'hidden'}>Punti (1°,2°,…) <input type="text" id="wc" value="${esc(w.custom)}" style="width:220px"></label>
+  </div><div class="row" style="margin-top:8px">
+   <label>Punto giro veloce <select id="wf"><option value="0">No</option><option value="1" ${w.fl === 1 ? 'selected' : ''}>1 punto</option><option value="10" ${w.fl === 10 ? 'selected' : ''}>1 punto se nei primi 10</option></select></label>
+   <label>Sprint <select id="ws"><option value="real">Punti reali</option><option value="none" ${w.sprint === 'none' ? 'selected' : ''}>Nessun punto</option><option value="custom" ${w.sprint === 'custom' ? 'selected' : ''}>Personalizzati</option></select></label>
+   <label id="wscl" ${w.sprint === 'custom' ? '' : 'hidden'}><input type="text" id="wsc" value="${esc(w.sprCustom)}" style="width:160px"></label>
+   <label>Risultati validi <input type="number" id="wb" min="0" max="30" value="${w.best}" style="width:70px"> <span class="mut small">(0 = tutti)</span></label>
+  </div></div><div id="wo"></div>`;
+  const rd = () => {
+    w.y = $('#wy').value === 'all' ? 'all' : +$('#wy').value; w.preset = $('#wp').value; w.custom = $('#wc').value; w.sprint = $('#ws').value; w.sprCustom = $('#wsc').value; w.best = +$('#wb').value || 0;
+    const fv = +$('#wf').value; w.fl = fv ? (fv === 10 ? 10 : 1) : 0;
+    $('#wcl').hidden = w.preset !== 'custom'; $('#wscl').hidden = w.sprint !== 'custom';
+    const P = POINT_PRESETS.find(p => p.id === w.preset);
+    const parse = s => s.split(/[,;\s-]+/).map(Number).filter(n => !isNaN(n));
+    const cfg = { pts: P.pts || parse(w.custom), fl: w.fl ? 1 : 0, flTop: w.fl === 10 ? 10 : 0, sprint: w.sprint === 'custom' ? parse(w.sprCustom) : w.sprint, best: w.best };
+    const out = $('#wo');
+    if (w.y === 'all') {
+      let changes = 0;
+      const rows = M.years.slice().reverse().filter(y => M.yi[y].started).map(y => {
+        const r = whatIf(y, cfg), nw = r.drivers[0], real = M.yi[y].dst.find(e => e.p === 1);
+        const nc = r.cons[0], realC = M.yi[y].cst.find(e => e.p === 1);
+        const ch = nw && real && nw.id !== real.d, chc = nc && realC && nc.id !== realC.c; if (ch) changes++;
+        return `<tr class="${ch ? 'changed' : ''}"><td><a class="lk" href="#anno-${y}">${y}</a>${M.yi[y].complete ? '' : ' <span class="tag">in corso</span>'}</td><td>${real ? dl(real.d) : '—'}</td><td>${nw ? dl(nw.id) + ` <span class="mut small">${fmtPts(nw.tot)} pt</span>` : '—'}</td><td>${ch ? '<b class="diff-up">Cambia</b>' : ''}</td><td>${realC ? cl(realC.c) : '—'}</td><td>${y >= 1958 && nc ? cl(nc.id) : '—'}</td><td>${y >= 1958 && chc ? '<b class="diff-up">Cambia</b>' : ''}</td></tr>`;
+      });
+      out.innerHTML = `<p><b>${changes}</b> titoli piloti cambierebbero vincitore.</p><div class="scroll"><table class="t"><thead><tr><th>Anno</th><th>Campione reale</th><th>Campione What If</th><th></th><th>Costruttori reale</th><th>Costruttori What If</th><th></th></tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
+    } else {
+      const r = whatIf(w.y, cfg);
+      const delta = o => o.realPos == null ? '' : (o.realPos > o.pos ? `<span class="diff-up">▲${o.realPos - o.pos}</span>` : o.realPos < o.pos ? `<span class="diff-dn">▼${o.pos - o.realPos}</span>` : '=');
+      const tb = (list, isD) => `<table class="t"><thead><tr><th class="n">Pos.</th><th></th><th>${isD ? 'Pilota' : 'Scuderia'}</th><th class="n">Punti What If</th><th class="n">Punti reali</th><th class="n">Pos. reale</th></tr></thead><tbody>${list.map(o => `<tr class="${o.pos === 1 && o.realPos !== 1 ? 'changed' : ''}"><td class="n"><b>${o.pos}</b></td><td>${delta(o)}</td><td>${isD ? dl(o.id) : cl(o.id)}</td><td class="n"><b>${fmtPts(o.tot)}</b></td><td class="n">${fmtPts(o.realPts)}</td><td class="n">${o.realPos ?? '—'}</td></tr>`).join('')}</tbody></table>`;
+      out.innerHTML = `<div class="grid2"><div class="card"><h2 style="margin-top:0">Piloti ${w.y}</h2><div class="scroll">${tb(r.drivers.filter(o => o.tot > 0 || o.realPts > 0), true)}</div></div><div class="card"><h2 style="margin-top:0">Scuderie ${w.y}</h2><p class="mut small">Somma dei punti di tutte le vetture${w.y < 1958 ? ' (il Mondiale Costruttori non esisteva ancora)' : ''}.</p><div class="scroll">${tb(r.cons.filter(o => o.tot > 0 || o.realPts > 0), false)}</div></div></div>`;
+    }
+  };
+  main.querySelectorAll('select,input').forEach(e => e.addEventListener('change', rd));
+  $('#wc').addEventListener('input', rd); rd();
+}
+
+// ---------- impostazioni ----------
+function pageSettings(main) {
+  const n = Object.values(D.seasons).filter(s => s.done && s.done.res).length, tot = CUR_YEAR - FIRST_YEAR + 1;
+  const fin = Object.values(D.seasons).filter(s => s.final).length;
+  const E = D.enrich;
+  main.innerHTML = `<h1>Impostazioni</h1>
+  <div class="card"><h2 style="margin-top:0">Dati</h2>
+   <p>Stagioni scaricate: <b>${n}</b> su ${tot} (${fin} definitive) · Ultimo aggiornamento: <b>${D.meta.lastSync ? new Date(D.meta.lastSync).toLocaleString('it-IT') : 'mai'}</b></p>
+   <p class="small mut">Fonte: API pubblica <a href="https://github.com/jolpica/jolpica-f1" target="_blank" rel="noopener">Jolpica-F1</a> (risultati ufficiali, aggiornati dopo ogni GP). Riferimento: <a href="https://www.formula1.com/en/results" target="_blank" rel="noopener">formula1.com/en/results</a>, che non può essere letto direttamente da una web app.</p>
+   <div id="syncwrap">${Sync.running || Sync.err || Sync.msg ? syncBox() + (Sync.err ? `<p style="color:#f5a623">Errore: ${esc(Sync.err)}</p>` : '') : ''}</div>
+   <div class="row"><button class="btn pri" id="bUpd">Aggiorna ora</button><button class="btn" id="bFull">Riscarica tutto</button>
+   <label><input type="checkbox" id="auto" ${SET.auto ? 'checked' : ''}> Aggiorna automaticamente all'apertura</label></div></div>
+  <div class="card"><h2 style="margin-top:0">Dati aggiuntivi F1DB</h2>
+   <p class="small">Telaio, power unit, gomme, luogo di nascita, giro più veloce prima del 2004 e qualifiche prima del 1994 provengono dal database aperto <b>F1DB</b>. Scarica il file <code>f1db-json-single.zip</code> dall'<a href="https://github.com/f1db/f1db/releases/latest" target="_blank" rel="noopener">ultima release su GitHub</a> e caricalo qui (anche lo ZIP va bene). Ripeti ogni tanto per avere le nuove stagioni.</p>
+   <p>${E ? `Importato il ${new Date(E.at).toLocaleString('it-IT')} · ${E.stats.drivers} piloti collegati · ${E.stats.entries} iscrizioni` : '<span class="mut">Non ancora importato.</span>'}</p>
+   <div class="row"><input type="file" id="fdb" accept=".zip,.json">${E ? '<button class="btn" id="bDelE">Rimuovi dati F1DB</button>' : ''}<span id="fdbmsg" class="small"></span></div></div>
+  <div class="card"><h2 style="margin-top:0">Backup e altri dispositivi</h2>
+   <p class="small">Esporta tutti i dati in un file .json per usarli su un altro dispositivo senza riscaricarli. Puoi anche pubblicare il file nel tuo repository GitHub e indicare qui l'indirizzo "raw": l'app lo caricherà al primo avvio e scaricherà dall'API solo le novità.</p>
+   <div class="row"><button class="btn" id="bExp">Esporta dati</button><label class="btn">Importa file <input type="file" id="imp" accept=".json" hidden></label><span id="impmsg" class="small"></span></div>
+   <div class="row" style="margin-top:10px"><input type="url" id="surl" value="${esc(SET.snapUrl)}" placeholder="https://raw.githubusercontent.com/utente/repo/main/f1-historic.json" style="flex:1;min-width:240px"><button class="btn" id="bSurl">Salva e carica</button></div></div>
+  <div class="card"><h2 style="margin-top:0">App</h2><p class="small">${isStandalone() ? 'F1 Historic è installata come app.' : (deferredPrompt ? 'Puoi installare F1 Historic sul dispositivo: si apre a schermo intero e funziona anche offline con i dati già scaricati.' : 'Per installarla: su Android/Chrome usa il menu ⋮ → Installa app; su iPhone/iPad apri la pagina in Safari e scegli Condividi → Aggiungi alla schermata Home.')}</p>${deferredPrompt && !isStandalone() ? '<button class="btn pri" id="bInst">Installa F1 Historic</button>' : ''}<p class="small mut">${navigator.onLine ? 'Online' : 'Offline: vengono mostrati i dati salvati.'} · Versione app ${APP_VERSION}</p></div>
+  <div class="card"><h2 style="margin-top:0">Aspetto</h2><div class="row"><label>Tema <select id="theme"><option value="dark">Scuro</option><option value="light" ${SET.theme === 'light' ? 'selected' : ''}>Chiaro</option></select></label></div></div>
+  <div class="card"><h2 style="margin-top:0">Ripristino</h2><button class="btn" id="bClr">Cancella tutti i dati salvati</button> <span id="clrmsg" class="small"></span></div>`;
+  if ($('#bInst')) $('#bInst').onclick = doInstall;
+  $('#bUpd').onclick = () => startSync({});
+  $('#bFull').onclick = () => startSync({ full: true });
+  $('#auto').onchange = e => { SET.auto = e.target.checked; saveSet(); };
+  $('#theme').onchange = e => { SET.theme = e.target.value; saveSet(); applyTheme(); };
+  $('#fdb').onchange = async e => {
+    const f = e.target.files[0]; if (!f) return; $('#fdbmsg').textContent = 'Import in corso…';
+    try { const s = await importF1DB(f); rebuild(); $('#fdbmsg').textContent = `Fatto: ${s.drivers} piloti e ${s.entries} iscrizioni collegati.`; setTimeout(() => route(), 1500); }
+    catch (err) { $('#fdbmsg').textContent = 'Errore: ' + err.message; }
+  };
+  if ($('#bDelE')) $('#bDelE').onclick = async () => { D.enrich = null; await Store.del('enrich'); rebuild(); route(); };
+  $('#bExp').onclick = () => {
+    const blob = new Blob([JSON.stringify(makeSnapshot())], { type: 'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'f1-historic.json'; document.body.appendChild(a); a.click(); a.remove();
+  };
+  $('#imp').onchange = async e => {
+    const f = e.target.files[0]; if (!f) return; $('#impmsg').textContent = 'Import in corso…';
+    try { await applySnapshot(JSON.parse(await f.text())); rebuild(); $('#impmsg').textContent = 'Dati importati.'; } catch (err) { $('#impmsg').textContent = 'Errore: ' + err.message; }
+  };
+  $('#bSurl').onclick = async () => { SET.snapUrl = $('#surl').value.trim(); saveSet(); if (SET.snapUrl) { $('#impmsg').textContent = 'Caricamento…'; try { await loadSnapUrl(); $('#impmsg').textContent = 'Dati caricati dall\'indirizzo.'; } catch (err) { $('#impmsg').textContent = 'Errore: ' + err.message; } } };
+  let armed = false;
+  $('#bClr').onclick = async () => {
+    if (!armed) { armed = true; $('#clrmsg').textContent = 'Premi di nuovo per confermare: tutti i dati scaricati verranno eliminati.'; return; }
+    Sync.cancel = true; await Store.clear(); Object.assign(D, { seasons: {}, drivers: {}, cons: {}, circuits: {}, enrich: null, meta: { lastSync: 0 } }); rebuild(); $('#clrmsg').textContent = 'Dati eliminati.';
+  };
+}
+async function loadSnapUrl() {
+  const r = await fetch(SET.snapUrl, { cache: 'no-store' }); if (!r.ok) throw new Error('HTTP ' + r.status);
+  await applySnapshot(await r.json()); rebuild();
+}
+
+// ---------- modale ----------
+function showModal(html) { $('#mbox').innerHTML = '<button class="x" aria-label="Chiudi">×</button>' + html; $('#modal').classList.add('open'); }
+function closeModal() { $('#modal').classList.remove('open'); }
+
+// ---------- sincronizzazione ----------
+let rebuildT = 0;
+function rebuild() { buildModel(); updateChip(); }
+function startSync(opts) { runSync(opts).then(() => { rebuild(); route(); }); updateChip(); }
+function updateChip() {
+  const el = $('#chip'); if (!el) return;
+  const pct = Sync.total ? Math.round(Sync.done / Sync.total * 100) : 0;
+  if (Sync.running) el.innerHTML = `<span class="dot run"></span><span>${Sync.wait ? 'In pausa (limite API)' : 'Aggiornamento ' + pct + '%'}</span><span class="bar"><i style="width:${pct}%"></i></span>`;
+  else if (Sync.err) el.innerHTML = `<span class="dot err"></span><span>Aggiornamento non riuscito</span>`;
+  else if (!navigator.onLine) el.innerHTML = `<span class="dot err"></span><span>Offline</span>`;
+  else el.innerHTML = `<span class="dot"></span><span>${D.meta.lastSync ? 'Aggiornato ' + new Date(D.meta.lastSync).toLocaleDateString('it-IT') : 'Nessun dato'}</span>`;
+  const sb = $('#syncbox'); if (sb) sb.outerHTML = syncBox();
+  const sw = $('#syncwrap'); if (sw && !sw.innerHTML && Sync.running) sw.innerHTML = syncBox();
+}
+Sync.onProgress = updateChip;
+Sync.onSeason = () => {
+  clearTimeout(rebuildT);
+  rebuildT = setTimeout(() => {
+    const wasEmpty = !M || M.empty; buildModel();
+    if (wasEmpty && !M.empty && page !== 'impostazioni') route();
+    else if (!M.empty && page !== 'impostazioni') $('#newdata').hidden = false;
+  }, 1500);
+};
+// ---------- PWA ----------
+const APP_VERSION = '1.0.0';
+let deferredPrompt = null;
+const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+async function doInstall() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  try { await deferredPrompt.userChoice; } catch (e) {}
+  deferredPrompt = null; $('#installBtn').hidden = true; if (page === 'impostazioni') route();
+}
+function setupPWA() {
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; if (!isStandalone()) $('#installBtn').hidden = false; });
+  window.addEventListener('appinstalled', () => { deferredPrompt = null; $('#installBtn').hidden = true; });
+  $('#installBtn').onclick = doInstall;
+  window.addEventListener('online', () => { updateChip(); if (SET.auto && Date.now() - (D.meta.lastSync || 0) > 3 * 3600e3 && Object.keys(D.seasons).length) startSync({}); });
+  window.addEventListener('offline', updateChip);
+  try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (e) {}
+  const okProto = location.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(location.hostname);
+  if (!('serviceWorker' in navigator) || !okProto) return;
+  navigator.serviceWorker.register('sw.js').then(reg => {
+    const ask = w => { $('#swUpd').hidden = false; $('#swUpd').onclick = () => w.postMessage('skip'); };
+    if (reg.waiting && navigator.serviceWorker.controller) ask(reg.waiting);
+    reg.addEventListener('updatefound', () => {
+      const w = reg.installing;
+      w && w.addEventListener('statechange', () => { if (w.state === 'installed' && navigator.serviceWorker.controller) ask(w); });
+    });
+    setInterval(() => reg.update().catch(() => {}), 6 * 3600e3);
+  }).catch(() => {});
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (reloaded) return; reloaded = true; location.reload(); });
+}
+function applyTheme() { document.documentElement.dataset.theme = SET.theme; }
+
+// ---------- avvio ----------
+async function init() {
+  applyTheme();
+  setupPWA();
+  $('#nav').innerHTML = NAV.map(([k, l]) => `<a href="#${k}" data-p="${k}">${l}</a>`).join('');
+  document.addEventListener('click', e => {
+    const t = e.target;
+    if (t.closest('.modal .x') || t.id === 'modal') return closeModal();
+    const a = t.closest('[data-d],[data-c],[data-race]');
+    if (a) {
+      e.preventDefault();
+      if (a.dataset.race) return openRace(a.dataset.race, a.dataset.tab);
+      if (a.dataset.d) return profile('d', a.dataset.d);
+      if (a.dataset.c) return profile('c', a.dataset.c);
+    }
+    if (t.id === 'startSync') { startSync({}); route(); }
+    if (t.id === 'stopSync') Sync.cancel = true;
+    if (t.closest('#menubtn')) $('nav.menu').classList.toggle('open');
+    if (t.closest('#chip')) go('impostazioni');
+    if (t.id === 'newdata') { $('#newdata').hidden = true; route(); }
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+  window.addEventListener('hashchange', route);
+  const ok = await Store.open();
+  if (!ok) $('#main').insertAdjacentHTML('beforebegin', '<div class="banner" style="margin:10px">Questo browser non permette di salvare i dati (IndexedDB non disponibile): verranno riscaricati a ogni apertura.</div>');
+  await loadAll();
+  if (SET.snapUrl && !Object.keys(D.seasons).length) { try { await loadSnapUrl(); } catch (e) {} }
+  buildModel(); updateChip(); route();
+  const stale = Date.now() - (D.meta.lastSync || 0) > 3 * 3600e3;
+  if (SET.auto && navigator.onLine && Object.keys(D.seasons).length && stale) startSync({});
+}
+init();
+
+}
+
+</script>
+</body>
+</html>
