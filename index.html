@@ -129,6 +129,21 @@ tr.changed td{background:color-mix(in srgb,var(--gold) 14%,transparent)!importan
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 @media(max-width:600px){table.t{font-size:13px}main{padding:10px 8px}}
 
+.ygrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:6px}
+.yb{position:relative;background:var(--bg3);border:1px solid var(--line);border-radius:7px;padding:8px 4px;font-weight:700;cursor:pointer;min-height:44px;font-variant-numeric:tabular-nums}
+.yb i{position:absolute;top:2px;right:5px;font-style:normal;font-size:11px}
+.yb.ok{border-color:var(--green)}.yb.ok i{color:var(--green)}
+.yb.partial{border-color:#f5a623}.yb.partial i{color:#f5a623}
+.yb.missing{color:var(--mut)}
+.yb.queued{border-style:dashed;border-color:var(--red)}
+.yb.run{background:var(--red);border-color:var(--red);color:#fff;animation:pulse 1s infinite}
+.yb:hover{border-color:var(--ink)}
+.ylegend{display:flex;gap:6px 12px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+.ys{display:inline-block;width:22px;text-align:center;border:1px solid var(--line);border-radius:5px;font-weight:700}
+.ys.ok{border-color:var(--green);color:var(--green)}.ys.partial{border-color:#f5a623;color:#f5a623}.ys.queued{border:1px dashed var(--red)}
+.years a.nodata{opacity:.6;border-style:dashed}
+@media(prefers-reduced-motion:reduce){.yb.run{animation:none}}
+
 </style>
 </head>
 <body>
@@ -311,7 +326,7 @@ async function saveMasters() {
 
 // ---------- rete con limiti di frequenza ----------
 const Sync = { running: false, cancel: false, msg: '', wait: '', done: 0, total: 0, req: 0, err: null, onProgress: () => {}, onSeason: () => {} };
-const Net = { last: 0, gap: 320 };
+const Net = { last: 0, gap: (typeof process !== 'undefined' && process.env && +process.env.F1_GAP) || 320 };
 
 async function waitMsg(ms, txt) {
   const end = Date.now() + ms;
@@ -447,26 +462,29 @@ async function runSync(opts = {}) {
   Sync.onProgress();
   try {
     const tasks = [];
-    for (let y = CUR_YEAR; y >= FIRST_YEAR; y--) {
+    if (opts.years) {
+      const ys = [...new Set(opts.years)].sort((x, z) => z - x);
+      for (const y of ys) { tasks.push({ y, ph: 1 }); if (y >= 1994) tasks.push({ y, ph: 2 }); }
+    } else for (let y = CUR_YEAR; y >= FIRST_YEAR; y--) {
       const s = D.seasons[y];
       if (opts.full || !s || !s.final || !(s.done && s.done.res && s.done.st)) tasks.push({ y, ph: 1 });
     }
-    for (let y = CUR_YEAR; y >= 1994; y--) {
+    if (!opts.years) for (let y = CUR_YEAR; y >= 1994; y--) {
       const s = D.seasons[y];
       if (opts.full || !s || !s.final || !(s.done && s.done.q)) tasks.push({ y, ph: 2 });
     }
-    Sync.total = tasks.length;
+    Sync.total = tasks.length; Sync.years = opts.years ? tasks.map(t => t.y) : null;
     for (const t of tasks) {
       Sync.msg = t.ph === 1 ? `Stagione ${t.y}: risultati e classifiche` : `Stagione ${t.y}: qualifiche`;
-      Sync.onProgress();
+      Sync.cur = t.y; Sync.onProgress();
       if (t.ph === 1) await syncSeason(t.y, { sched: t.y >= CUR_YEAR, res: 1, spr: 1, st: 1 });
       else await syncSeason(t.y, { q: 1 });
       Sync.done++; Sync.onProgress(); Sync.onSeason(t.y);
     }
-    D.meta.lastSync = Date.now(); await Store.set('meta', D.meta);
+    if (!opts.years) { D.meta.lastSync = Date.now(); await Store.set('meta', D.meta); }
     Sync.msg = 'Dati aggiornati';
   } catch (e) { Sync.err = e.message; Sync.msg = ''; }
-  finally { Sync.running = false; Sync.wait = ''; Sync.onProgress(); }
+  finally { Sync.running = false; Sync.wait = ''; Sync.cur = null; Sync.onProgress(); }
 }
 
 // ---------- snapshot (esporta / importa / URL) ----------
@@ -480,7 +498,7 @@ async function applySnapshot(o) {
     if (!cur || (s.fetchedAt || 0) >= (cur.fetchedAt || 0)) { D.seasons[y] = s; await Store.set('season:' + y, s); }
   }
   Object.assign(D.drivers, o.drivers || {}); Object.assign(D.cons, o.cons || {}); Object.assign(D.circuits, o.circuits || {});
-  if (o.enrich && !D.enrich) { D.enrich = o.enrich; await Store.set('enrich', D.enrich); }
+  if (o.enrich && (!D.enrich || (o.enrich.at || 0) > (D.enrich.at || 0))) { D.enrich = o.enrich; await Store.set('enrich', D.enrich); }
   await saveMasters();
 }
 
@@ -931,7 +949,7 @@ function route() {
   $('nav.menu').classList.remove('open');
   const main = $('#main');
   $('#newdata').hidden = true;
-  if (h !== 'impostazioni' && h !== 'regolamenti' && (!M || M.empty)) { main.innerHTML = welcome(); return; }
+  if (h !== 'impostazioni' && h !== 'regolamenti' && !/^anno/.test(h) && (!M || M.empty)) { main.innerHTML = welcome(); return; }
   let m;
   if (h === 'albo-piloti') pageAlboPiloti(main);
   else if (h === 'storico-piloti') pageStorico(main, 'd');
@@ -956,7 +974,8 @@ function welcome() {
    <p>Per iniziare l'app scarica tutti i risultati ufficiali (gare, sprint, qualifiche e classifiche) dall'API pubblica <b>Jolpica-F1</b> e li salva in questo browser. Dopo il primo download si aggiorna da sola scaricando solo la stagione in corso.</p>
    <p class="mut small">Il primo download richiede circa 600 richieste. L'API ne consente 500 all'ora, quindi può servire da qualche minuto fino a circa un'ora: i dati vengono salvati stagione per stagione e puoi chiudere la pagina e riprendere in seguito.</p>
    ${run ? syncBox() : `<button class="btn pri" id="startSync">Scarica lo storico completo</button>
-   <p class="mut small">Hai un export di questa app? Caricalo da <a href="#impostazioni">Impostazioni</a> per partire subito.</p>`}
+   <a class="btn" href="#impostazioni" style="margin-left:6px">Scegli gli anni da scaricare</a>
+   <p class="mut small">In Impostazioni puoi scaricare le stagioni una alla volta o un intervallo di anni, oppure caricare un export di questa app.</p>`}
   </div>`;
 }
 function syncBox() {
@@ -1067,8 +1086,10 @@ function pageStorico(main, kind) {
 
 // ---------- Anno ----------
 function pageYears(main) {
-  const ys = M.years.slice().reverse();
-  main.innerHTML = `<h1>Scegli la stagione</h1><div class="years">${ys.map(y => { const yi = M.yi[y]; const ch = yi.champ ? dName(yi.champ) : (yi.complete ? '' : 'in corso'); return `<a href="#anno-${y}"><b>${y}</b><span>${esc(ch)}</span><span>${yi.cChamp ? esc(cName(yi.cChamp)) : '&nbsp;'}</span></a>`; }).join('')}</div>`;
+  const ys = []; for (let y = CUR_YEAR; y >= FIRST_YEAR; y--) ys.push(y);
+  main.innerHTML = `<h1>Scegli la stagione</h1><div class="years">${ys.map(y => { const yi = M.yi[y];
+    if (!yi || !yi.started) { const st = yearStatus(y); return `<a href="#anno-${y}" class="nodata"><b>${y}</b><span>${st === 'missing' ? 'Non scaricata' : 'Nessuna gara disputata'}</span><span>${st === 'missing' ? 'Tocca per scaricare' : '&nbsp;'}</span></a>`; }
+    const ch = yi.champ ? dName(yi.champ) : (yi.complete ? '' : 'in corso'); return `<a href="#anno-${y}"><b>${y}</b><span>${esc(ch)}</span><span>${yi.cChamp ? esc(cName(yi.cChamp)) : '&nbsp;'}</span></a>`; }).join('')}</div>`;
 }
 function resCell(race, rows, d, sprint) {
   if (!race.done && !sprint) return '';
@@ -1088,14 +1109,22 @@ function short(race) { return (race.name || '').replace(/Grand Prix|Gran Premio|
 
 function pageYear(main, y) {
   const yi = M.yi[y];
-  if (!yi) { main.innerHTML = `<h1>${y}</h1><p class="mut">Nessun dato per questa stagione.</p>`; return; }
+  if (!yi || !yi.started) {
+    const st = yearStatus(y), busy = (Sync.running && (Sync.cur === y || (Sync.years || []).includes(y))) || yearQueue.includes(y);
+    main.innerHTML = `<div class="yearhead"><h1 style="margin:0">Stagione ${y}</h1><a class="btn sm" href="#anno">Tutte le stagioni</a></div>
+     <div class="card" style="max-width:640px;margin-top:14px">${st === 'missing' ? `<p>Questa stagione non è ancora stata scaricata.</p>` : `<p class="mut">Nessuna gara disputata per ora in questa stagione.</p>`}
+     ${busy ? '<p><b>Download in corso…</b> la pagina si aggiorna da sola al termine.</p>' : `<button class="btn pri" id="dlYear">${st === 'missing' ? 'Scarica la stagione ' + y : 'Riscarica la stagione ' + y}</button>`}</div>`;
+    if ($('#dlYear')) $('#dlYear').onclick = () => { queueYears([y]); pageYear(main, y); };
+    return;
+  }
   const tab = tabState.year || 'class';
   const prev = M.yi[y - 1] ? `<a class="btn sm" href="#anno-${y - 1}">◀ ${y - 1}</a>` : '', next = M.yi[y + 1] ? `<a class="btn sm" href="#anno-${y + 1}">${y + 1} ▶</a>` : '';
   const TABS = [['class', 'Classifiche'], ['entry', 'Scuderie e Piloti'], ['races', 'Gare'], ['reg', 'Regolamento'], ['ev', 'Eventi salienti']];
   main.innerHTML = `<div class="yearhead"><h1 style="margin:0">Stagione ${y}</h1>${prev}${next}<a class="btn sm" href="#anno">Tutte le stagioni</a>
-   ${yi.complete ? '' : '<span class="tag win">In corso</span>'}</div>
+   ${yi.complete ? '' : '<span class="tag win">In corso</span>'}<button class="btn sm" id="reYear" title="Scarica di nuovo questa stagione da Jolpica">↻ Riscarica</button></div>
    <div class="tabs">${TABS.map(([k, l]) => `<button data-tab="${k}" class="${k === tab ? 'on' : ''}">${l}</button>`).join('')}</div><div id="yc"></div>`;
   main.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { tabState.year = b.dataset.tab; pageYear(main, y); });
+  $('#reYear').onclick = e => { e.target.disabled = true; e.target.textContent = 'In coda…'; queueYears([y]); };
   const yc = $('#yc');
   if (tab === 'class') yc.innerHTML = yearClass(yi);
   else if (tab === 'entry') yc.innerHTML = yearEntry(yi);
@@ -1323,6 +1352,43 @@ function pageWhatIf(main) {
   $('#wc').addEventListener('input', rd); rd();
 }
 
+// ---------- download anno per anno ----------
+let yearQueue = [];
+function yearStatus(y) {
+  const s = D.seasons[y];
+  if (!s || !s.done || !s.done.res) return 'missing';
+  const ok = s.done.st && (y < 2021 || s.done.spr) && (y < 1994 || s.done.q);
+  return ok ? 'ok' : 'partial';
+}
+const yearOpts = sel => { let h = ''; for (let y = CUR_YEAR; y >= FIRST_YEAR; y--) h += `<option ${y === sel ? 'selected' : ''}>${y}</option>`; return h; };
+function yearGrid() {
+  let h = '';
+  for (let y = CUR_YEAR; y >= FIRST_YEAR; y--) {
+    const running = Sync.running && Sync.cur === y, queued = yearQueue.includes(y) || (Sync.running && Sync.years && Sync.years.includes(y) && !running && yearStatus(y) !== 'ok');
+    const st = running ? 'run' : queued ? 'queued' : yearStatus(y);
+    const s = D.seasons[y];
+    const tip = st === 'ok' ? `Scaricata il ${new Date(s.fetchedAt).toLocaleString('it-IT')}. Tocca per riscaricare.` : st === 'partial' ? 'Scaricata in parte: tocca per completare' : st === 'run' ? 'Download in corso' : st === 'queued' ? 'In coda' : 'Tocca per scaricare';
+    h += `<button class="yb ${st}" data-y="${y}" title="${tip}">${y}<i>${{ ok: '✓', partial: '~', missing: '·', run: '↓', queued: '…' }[st]}</i></button>`;
+  }
+  return h;
+}
+function queueInfo() {
+  if (Sync.running) return `In download: ${Sync.cur || ''} ${Sync.wait ? '· ' + esc(Sync.wait) : ''}${yearQueue.length ? ` · in coda: ${yearQueue.length} stagioni` : ''}`;
+  const n = Array.from({ length: CUR_YEAR - FIRST_YEAR + 1 }, (_, i) => FIRST_YEAR + i).filter(y => yearStatus(y) === 'ok').length;
+  return `${n} stagioni complete su ${CUR_YEAR - FIRST_YEAR + 1}.${Sync.err ? ' Ultimo errore: ' + esc(Sync.err) : ''}`;
+}
+function refreshYearUI() { const g = $('#ygrid'); if (g) g.innerHTML = yearGrid(); const q = $('#qinfo'); if (q) q.innerHTML = queueInfo(); }
+function queueYears(ys) {
+  for (const y of ys) if (!yearQueue.includes(y) && !(Sync.running && Sync.cur === y)) yearQueue.push(y);
+  refreshYearUI(); pumpQueue();
+}
+function pumpQueue() {
+  if (Sync.running || !yearQueue.length) return;
+  const ys = yearQueue.splice(0, yearQueue.length);
+  runSync({ years: ys }).then(() => { rebuild(); refreshYearUI(); if (page === 'impostazioni' || /^anno/.test(page)) route(); else $('#newdata').hidden = false; pumpQueue(); });
+  updateChip(); refreshYearUI();
+}
+
 // ---------- impostazioni ----------
 function pageSettings(main) {
   const n = Object.values(D.seasons).filter(s => s.done && s.done.res).length, tot = CUR_YEAR - FIRST_YEAR + 1;
@@ -1330,11 +1396,18 @@ function pageSettings(main) {
   const E = D.enrich;
   main.innerHTML = `<h1>Impostazioni</h1>
   <div class="card"><h2 style="margin-top:0">Dati</h2>
-   <p>Stagioni scaricate: <b>${n}</b> su ${tot} (${fin} definitive) · Ultimo aggiornamento: <b>${D.meta.lastSync ? new Date(D.meta.lastSync).toLocaleString('it-IT') : 'mai'}</b></p>
+   <p>Stagioni presenti: <b>${n}</b> su ${tot} (${fin} definitive) · Ultimo aggiornamento: <b>${D.meta.lastSync ? new Date(D.meta.lastSync).toLocaleString('it-IT') : 'mai'}</b>${D.meta.embedAt ? ` · Dati incorporati del <b>${new Date(D.meta.embedAt).toLocaleString('it-IT')}</b>` : ''}</p>
    <p class="small mut">Fonte: API pubblica <a href="https://github.com/jolpica/jolpica-f1" target="_blank" rel="noopener">Jolpica-F1</a> (risultati ufficiali, aggiornati dopo ogni GP). Riferimento: <a href="https://www.formula1.com/en/results" target="_blank" rel="noopener">formula1.com/en/results</a>, che non può essere letto direttamente da una web app.</p>
    <div id="syncwrap">${Sync.running || Sync.err || Sync.msg ? syncBox() + (Sync.err ? `<p style="color:#f5a623">Errore: ${esc(Sync.err)}</p>` : '') : ''}</div>
    <div class="row"><button class="btn pri" id="bUpd">Aggiorna ora</button><button class="btn" id="bFull">Riscarica tutto</button>
    <label><input type="checkbox" id="auto" ${SET.auto ? 'checked' : ''}> Aggiorna automaticamente all'apertura</label></div></div>
+  <div class="card"><h2 style="margin-top:0">Scarica anno per anno</h2>
+   <p class="small">Tocca una stagione per scaricarla (o riscaricarla) da Jolpica: risultati, sprint, qualifiche e classifiche. Ogni stagione richiede da 3 a 12 richieste. Puoi toccarne più di una: vengono messe in coda.</p>
+   <div class="row" style="margin-bottom:10px"><label>Dal <select id="rgFrom">${yearOpts(1950)}</select></label><label>al <select id="rgTo">${yearOpts(CUR_YEAR)}</select></label>
+   <button class="btn" id="bRange">Scarica intervallo</button><button class="btn" id="bMissing">Scarica solo le mancanti</button></div>
+   <div class="ylegend small mut"><span class="ys ok">✓</span> completa <span class="ys partial">~</span> parziale <span class="ys missing">·</span> da scaricare <span class="ys queued">…</span> in coda</div>
+   <div class="ygrid" id="ygrid">${yearGrid()}</div>
+   <div class="small mut" id="qinfo" style="margin-top:6px">${queueInfo()}</div></div>
   <div class="card"><h2 style="margin-top:0">Dati aggiuntivi F1DB</h2>
    <p class="small">Telaio, power unit, gomme, luogo di nascita, giro più veloce prima del 2004 e qualifiche prima del 1994 provengono dal database aperto <b>F1DB</b>. Scarica il file <code>f1db-json-single.zip</code> dall'<a href="https://github.com/f1db/f1db/releases/latest" target="_blank" rel="noopener">ultima release su GitHub</a> e caricalo qui (anche lo ZIP va bene). Ripeti ogni tanto per avere le nuove stagioni.</p>
    <p>${E ? `Importato il ${new Date(E.at).toLocaleString('it-IT')} · ${E.stats.drivers} piloti collegati · ${E.stats.entries} iscrizioni` : '<span class="mut">Non ancora importato.</span>'}</p>
@@ -1347,6 +1420,9 @@ function pageSettings(main) {
   <div class="card"><h2 style="margin-top:0">Aspetto</h2><div class="row"><label>Tema <select id="theme"><option value="dark">Scuro</option><option value="light" ${SET.theme === 'light' ? 'selected' : ''}>Chiaro</option></select></label></div></div>
   <div class="card"><h2 style="margin-top:0">Ripristino</h2><button class="btn" id="bClr">Cancella tutti i dati salvati</button> <span id="clrmsg" class="small"></span></div>`;
   if ($('#bInst')) $('#bInst').onclick = doInstall;
+  $('#ygrid').onclick = e => { const b = e.target.closest('[data-y]'); if (b) queueYears([+b.dataset.y]); };
+  $('#bRange').onclick = () => { let a = +$('#rgFrom').value, b = +$('#rgTo').value; if (a > b) [a, b] = [b, a]; const ys = []; for (let y = b; y >= a; y--) ys.push(y); queueYears(ys); };
+  $('#bMissing').onclick = () => { const ys = []; for (let y = CUR_YEAR; y >= FIRST_YEAR; y--) if (yearStatus(y) !== 'ok') ys.push(y); queueYears(ys); };
   $('#bUpd').onclick = () => startSync({});
   $('#bFull').onclick = () => startSync({ full: true });
   $('#auto').onchange = e => { SET.auto = e.target.checked; saveSet(); };
@@ -1372,6 +1448,21 @@ function pageSettings(main) {
     Sync.cancel = true; await Store.clear(); Object.assign(D, { seasons: {}, drivers: {}, cons: {}, circuits: {}, enrich: null, meta: { lastSync: 0 } }); rebuild(); $('#clrmsg').textContent = 'Dati eliminati.';
   };
 }
+// dati incorporati nell'app (data.json accanto a index.html, generato dall'azione GitHub)
+async function loadEmbedded() {
+  if (location.protocol === 'file:') return false;
+  try {
+    const r = await fetch('data.json', { cache: 'no-cache' });
+    if (!r.ok) return false;
+    const o = await r.json();
+    if (!o || !o.exportedAt || o.exportedAt === D.meta.embedAt) return false;
+    await applySnapshot(o);
+    D.meta.embedAt = o.exportedAt;
+    D.meta.lastSync = Math.max(D.meta.lastSync || 0, Date.parse(o.exportedAt) || 0);
+    await Store.set('meta', D.meta);
+    return true;
+  } catch (e) { return false; }
+}
 async function loadSnapUrl() {
   const r = await fetch(SET.snapUrl, { cache: 'no-store' }); if (!r.ok) throw new Error('HTTP ' + r.status);
   await applySnapshot(await r.json()); rebuild();
@@ -1384,14 +1475,15 @@ function closeModal() { $('#modal').classList.remove('open'); }
 // ---------- sincronizzazione ----------
 let rebuildT = 0;
 function rebuild() { buildModel(); updateChip(); }
-function startSync(opts) { runSync(opts).then(() => { rebuild(); route(); }); updateChip(); }
+function startSync(opts) { if (Sync.running) return; runSync(opts).then(() => { rebuild(); route(); pumpQueue(); }); updateChip(); }
 function updateChip() {
   const el = $('#chip'); if (!el) return;
   const pct = Sync.total ? Math.round(Sync.done / Sync.total * 100) : 0;
   if (Sync.running) el.innerHTML = `<span class="dot run"></span><span>${Sync.wait ? 'In pausa (limite API)' : 'Aggiornamento ' + pct + '%'}</span><span class="bar"><i style="width:${pct}%"></i></span>`;
   else if (Sync.err) el.innerHTML = `<span class="dot err"></span><span>Aggiornamento non riuscito</span>`;
   else if (!navigator.onLine) el.innerHTML = `<span class="dot err"></span><span>Offline</span>`;
-  else el.innerHTML = `<span class="dot"></span><span>${D.meta.lastSync ? 'Aggiornato ' + new Date(D.meta.lastSync).toLocaleDateString('it-IT') : 'Nessun dato'}</span>`;
+  else el.innerHTML = `<span class="dot"></span><span>${D.meta.lastSync ? 'Aggiornato ' + new Date(D.meta.lastSync).toLocaleDateString('it-IT') : (Object.keys(D.seasons).length ? Object.values(D.seasons).filter(s => s.done && s.done.res).length + ' stagioni scaricate' : 'Nessun dato')}</span>`;
+  refreshYearUI();
   const sb = $('#syncbox'); if (sb) sb.outerHTML = syncBox();
   const sw = $('#syncwrap'); if (sw && !sw.innerHTML && Sync.running) sw.innerHTML = syncBox();
 }
@@ -1405,7 +1497,7 @@ Sync.onSeason = () => {
   }, 1500);
 };
 // ---------- PWA ----------
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.2.0';
 let deferredPrompt = null;
 const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 async function doInstall() {
@@ -1463,8 +1555,14 @@ async function init() {
   const ok = await Store.open();
   if (!ok) $('#main').insertAdjacentHTML('beforebegin', '<div class="banner" style="margin:10px">Questo browser non permette di salvare i dati (IndexedDB non disponibile): verranno riscaricati a ogni apertura.</div>');
   await loadAll();
-  if (SET.snapUrl && !Object.keys(D.seasons).length) { try { await loadSnapUrl(); } catch (e) {} }
+  const hadData = Object.keys(D.seasons).length > 0;
+  if (!hadData) {
+    $('#main').innerHTML = '<h1>F1 Historic</h1><p class="mut">Caricamento dei dati incorporati…</p>';
+    await loadEmbedded();
+    if (SET.snapUrl && !Object.keys(D.seasons).length) { try { await loadSnapUrl(); } catch (e) {} }
+  }
   buildModel(); updateChip(); route();
+  if (hadData && await loadEmbedded()) { buildModel(); updateChip(); if (['impostazioni', 'whatif'].includes(page)) route(); else $('#newdata').hidden = false; }
   const stale = Date.now() - (D.meta.lastSync || 0) > 3 * 3600e3;
   if (SET.auto && navigator.onLine && Object.keys(D.seasons).length && stale) startSync({});
 }
