@@ -1,5 +1,5 @@
-// F1 Historic - service worker
-const VERSION = 'f1h-1.0.0';
+// F1 History - service worker
+const VERSION = 'f1h-1.3.0';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png', './icons/apple-touch-icon.png', './icons/favicon-32.png'];
 const FONTS = 'f1h-fonts';
 
@@ -26,6 +26,12 @@ self.addEventListener('fetch', e => {
   }
   // API e altri siti: sempre dalla rete (i dati sono salvati dall'app in IndexedDB)
   if (url.origin !== location.origin) return;
+  // Dati incorporati: prima la rete (aggiornati ogni giorno), offline la copia salvata
+  if (url.pathname.endsWith('/data.json')) {
+    e.respondWith(fetch(req).then(res => { if (res.ok) { const cp = res.clone(); caches.open(VERSION).then(c => c.put(req, cp)); } return res; })
+      .catch(() => caches.match(req, { ignoreSearch: true })));
+    return;
+  }
   // Pagina: prima la rete, poi la copia salvata (funziona offline)
   if (req.mode === 'navigate') {
     e.respondWith(fetch(req).then(res => { const cp = res.clone(); caches.open(VERSION).then(c => c.put('./index.html', cp)); return res; })
