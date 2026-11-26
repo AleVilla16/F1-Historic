@@ -2066,9 +2066,10 @@ const XL_SHEETS = {
   cs: { name: 'Classifica Scuderie', cols: [['pos', 'Pos', 6], ['team', 'Scuderia', 26], ['pts', 'Punti', 8], ['wins', 'Vittorie', 9]] },
   pil: { name: 'Piloti', cols: [['driver', 'Pilota', 24], ['abbr', 'Abbreviazione', 13], ['dob', 'Data di nascita', 15], ['nat', 'Nazionalità', 16], ['pob', 'Luogo di nascita', 26], ['photo', 'Foto (URL)', 40]] },
   ev: { name: 'Eventi', cols: [['round', 'Round', 8], ['session', 'Sessione', 16], ['evtype', 'Tipo', 20], ['text', 'Descrizione', 80], ['drivers', 'Piloti coinvolti', 40], ['teams', 'Scuderie', 30]] },
-  scu: { name: 'Scuderie', cols: [['team', 'Scuderia', 24], ['chassis', 'Vettura', 18], ['engine', 'Motorista', 24], ['tyres', 'Gomme', 12], ['nat', 'Nazionalità', 16]] },
+  scu: { name: 'Scuderie', cols: [['team', 'Scuderia', 24], ['chassis', 'Vettura', 18], ['engine', 'Motorista', 24], ['tyres', 'Gomme', 12], ['tp', 'Team Principal', 22], ['tpn', 'Nazionalità Team Principal', 18], ['nat', 'Nazionalità', 16]] },
 };
 const XL_ALIAS = {
+  tp: ['teamprincipal', 'principal', 'tp', 'caposquadra', 'direttoresportivo'], tpn: ['nazionalitateamprincipal', 'nazionalitatp', 'naztp', 'tpnazionalita', 'tpnat'],
   year: ['anno', 'year', 'stagione', 'season'],
   dotd: ['pilotadelgiorno', 'driveroftheday', 'dotd'], dotdteam: ['scuderiapilotadelgiorno', 'scuderiadriveroftheday', 'driverofthedayscuderia'],
   pitd: ['pitstoppiuvelocepilota', 'fastestpitstoppilota', 'pitstoppilota', 'sostapiuvelocepilota'], pitc: ['pitstoppiuvelocescuderia', 'fastestpitstopscuderia', 'pitstopscuderia', 'sostapiuvelocescuderia'],
@@ -2255,9 +2256,10 @@ async function importYearXlsx(file, y) {
   for (const x of scu) {
     const c = findC(x.team); if (!c) continue;
     if (xlStr(x.nat)) D.cons[c].nat = parseNat(x.nat);
+    const tpX = xlStr(x.tp), tpnX = tpNatIso(xlStr(x.tpn));
     const sp = v => xlStr(v) ? xlStr(v).split('/').map(t => t.trim()).filter(Boolean) : [];
     E.ent[y + '|' + c] = { ch: sp(x.chassis), en: sp(x.engine), em: sp(x.engine), ty: sp(x.tyres) };
-    s.ent = s.ent || {}; const oe = (old && old.ent && old.ent[c]) || {}; s.ent[c] = Object.assign({}, oe.tp ? { tp: oe.tp, tpn: oe.tpn } : {}, oe.col1 ? { col1: oe.col1 } : {}, oe.col2 ? { col2: oe.col2 } : {}, { ch: xlStr(x.chassis), em: xlStr(x.engine) });
+    s.ent = s.ent || {}; const oe = (old && old.ent && old.ent[c]) || {}; s.ent[c] = Object.assign({}, oe.tp ? { tp: oe.tp, tpn: oe.tpn } : {}, oe.col1 ? { col1: oe.col1 } : {}, oe.col2 ? { col2: oe.col2 } : {}, { ch: xlStr(x.chassis), em: xlStr(x.engine) }, tpX ? { tp: tpX, tpn: tpnX || oe.tpn || '' } : {});
     sp(x.tyres).forEach(t => tySet.add(t));
   }
   if (scu.length) E.tyN[y] = tySet.size;
@@ -2371,7 +2373,7 @@ function exportYearXlsx(y, of1 = {}) {
     const ds = new Set(), cs2 = new Set();
     for (const L of [s.res, s.spr]) for (const r in L) for (const x of L[r]) { ds.add(x.d); cs2.add(x.c); }
     for (const d of ds) { const o = D.drivers[d] || {}, bp = E.drv && E.drv[d]; pil.push([dName(d), o.code || '', fmtDate(o.dob), natIt(o.nat), bp ? [bp.pob, bp.cob].filter(Boolean).join(', ') : '', (typeof PHOTOS !== 'undefined' && PHOTOS[d] && !PHOTOS[d].startsWith('data:')) ? PHOTOS[d] : '']); }
-    for (const c of cs2) { const o = D.cons[c] || {}, en = E.ent && E.ent[y + '|' + c]; const ov = (s && s.ent && s.ent[c]) || {}; scu.push([cName(c), ov.ch != null ? ov.ch : (en ? en.ch.join(' / ') : ''), ov.em != null ? ov.em : (en ? (en.em && en.em.length ? en.em : en.en).join(' / ') : ''), en ? en.ty.join(' / ') : '', natIt(o.nat)]); }
+    for (const c of cs2) { const o = D.cons[c] || {}, en = E.ent && E.ent[y + '|' + c]; const ov = (s && s.ent && s.ent[c]) || {}; scu.push([cName(c), ov.ch != null ? ov.ch : (en ? en.ch.join(' / ') : ''), ov.em != null ? ov.em : (en ? (en.em && en.em.length ? en.em : en.en).join(' / ') : ''), en ? en.ty.join(' / ') : '', (teamPrincipal(c, y) || {}).name || '', tpNatName((teamPrincipal(c, y) || {}).n), natIt(o.nat)]); }
   }
   sheets.push({ name: 'Gare', rows: gare, widths: W('gare') }, { name: 'Risultati', rows: ris, widths: W('ris') }, { name: 'Qualifiche', rows: qual, widths: W('qual') },
     ...exportExtraSheets(y, s, of1),
@@ -2381,18 +2383,18 @@ function exportYearXlsx(y, of1 = {}) {
 
 // ---- vetture e motoristi di tutti gli anni in un solo file ----
 function exportCarsXlsx() {
-  const rows = [['Anno', 'Scuderia', 'Vettura', 'Motorista', 'Motore (modello)', 'Gomme']];
+  const rows = [['Anno', 'Scuderia', 'Nazionalità', 'Vettura', 'Motorista', 'Motore (modello)', 'Gomme', 'Team Principal', 'Nazionalità Team Principal']];
   for (const y of M.years.slice().sort((a, b) => b - a)) {
     const teams = [...new Set(M.yi[y].races.flatMap(r => r.res.concat(r.spr || []).map(z => z.c)))].sort((a, b) => cName(a).localeCompare(cName(b)));
-    for (const c of teams) { const tc = teamCar(y, c, []), en = (D.enrich && D.enrich.ent && D.enrich.ent[y + '|' + c]) || {}; rows.push([y, cName(c), tc.ch || '', tc.em || '', tc.eng || '', (en.ty || []).join(' / ')]); }
+    for (const c of teams) { const tc = teamCar(y, c, []), en = (D.enrich && D.enrich.ent && D.enrich.ent[y + '|' + c]) || {}; const tp = teamPrincipal(c, y) || {}; rows.push([y, cName(c), natIt((D.cons[c] || {}).nat), tc.ch || '', tc.em || '', tc.eng || '', (en.ty || []).join(' / '), tp.name || '', tpNatName(tp.n)]); }
   }
   return writeXlsx([{ name: 'Istruzioni', noHeader: true, wrap: true, widths: [110], rows: [['F1 History – vetture e motoristi di tutte le stagioni'], ['Una riga per scuderia e per anno. Modifica Vettura e Motorista e ricarica il file da Impostazioni: i valori vengono salvati nelle stagioni corrispondenti (le celle vuote non cambiano nulla).']] },
-    { name: 'Vetture e motoristi', rows, widths: [8, 26, 24, 22, 30, 12] }]);
+    { name: 'Vetture e motoristi', rows, widths: [8, 26, 16, 24, 22, 30, 12, 24, 18] }]);
 }
 async function importCarsXlsx(file) {
   const book = await readXlsx(await file.arrayBuffer());
   const sh = findSheet(book, n => n.startsWith('vettur') || n.startsWith('scuderie') || n.startsWith('cars'));
-  const recs = sheetRecords(sh, ['year', 'team', 'chassis', 'engine']);
+  const recs = sheetRecords(sh, ['year', 'team', 'chassis', 'engine', 'tp', 'tpn', 'nat']);
   let n = 0, miss = 0; const touched = new Set();
   for (const x of recs) {
     const y = Math.round(xlNum(x.year) || 0), t = normName(xlStr(x.team)); if (!y || !t || !D.seasons[y]) { miss++; continue; }
@@ -2401,11 +2403,17 @@ async function importCarsXlsx(file) {
     if (!c) { miss++; continue; }
     const s = D.seasons[y]; s.ent = s.ent || {}; const o = s.ent[c] || (s.ent[c] = {});
     const ch = xlStr(x.chassis), em = xlStr(x.engine);
-    if (ch) o.ch = ch; if (em) o.em = em; if (ch || em) { n++; touched.add(y); }
+    const tpX = xlStr(x.tp), tpnX = tpNatIso(xlStr(x.tpn)); if (tpX) { o.tp = tpX; if (tpnX) o.tpn = tpnX; } if (xlStr(x.nat) && D.cons[c]) D.cons[c].nat = parseNat(x.nat);
+    if (ch) o.ch = ch; if (em) o.em = em; if (ch || em || tpX) { n++; touched.add(y); }
   }
   for (const y of touched) await Store.set('season:' + y, D.seasons[y]);
   return { n, miss, years: touched.size };
 }
+
+// nazionalità del team principal: nome del paese in italiano <-> codice ISO
+function tpNatName(iso) { if (!iso) return ''; const m = (typeof TP_NATS !== 'undefined' ? TP_NATS : []).find(x => x[0] === iso); if (m) return m[1]; try { return new Intl.DisplayNames(['it'], { type: 'region' }).of(iso.toUpperCase()); } catch (e) { return iso; } }
+function tpNatIso(v) { if (!v) return ''; const k = normName(v); if (/^[a-z]{2}$/.test(k)) return k; const m = (typeof TP_NATS !== 'undefined' ? TP_NATS : []).find(x => normName(x[1]) === k); if (m) return m[0];
+  const n = typeof parseNat === 'function' ? parseNat(v) : v; return (typeof NAT_ISO !== 'undefined' && (NAT_ISO[n] || CTY_ISO[n] || CTY_ISO[v])) || ''; }
 
 // ===================== EVENTI DI GARA (OpenF1 + inseriti a mano) e FOTO PILOTI =====================
 const OF1 = 'https://api.openf1.org/v1';
@@ -5139,7 +5147,7 @@ Sync.onSeason = () => {
   }, 1500);
 };
 // ---------- PWA ----------
-const APP_VERSION = '2.124.0';
+const APP_VERSION = '2.125.0';
 let deferredPrompt = null;
 const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 async function doInstall() {
