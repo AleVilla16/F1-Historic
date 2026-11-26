@@ -3357,7 +3357,7 @@ function pageYear(main, y) {
   $('#xlI').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if (f) doXlImport(f, y, $('#xlMsg')); };
   $('#reYear').onclick = e => { e.target.disabled = true; e.target.textContent = 'In coda…'; queueYears([y]); };
   const yc = $('#yc');
-  if (tab === 'class') yc.innerHTML = yearClass(yi);
+  if (tab === 'class') { yc.innerHTML = yearClass(yi) + yearAwards(yi); bindYearAwards(yc); }
   else if (tab === 'entry') yc.innerHTML = yearEntry(yi);
   else if (tab === 'races') yc.innerHTML = yearRaces(yi);
   else if (tab === 'reg') yc.innerHTML = yearReg(yi);
@@ -3757,6 +3757,25 @@ function natPopup(i, kind) {
   }
   showModal(`<h2 style="margin-top:0">${title} · ${head}</h2><div class="scroll" style="max-height:70vh">${body}</div>`);
 }
+// premi della stagione (come nei Record, foglio Stagioni e gare): Driver of the Day, Fastest Lap, Fastest Pit Stop
+let YAW = [];
+function yearAwards(yi) {
+  const rs = yi.races.filter(r => r.done), cnt = get => { const m = {}; rs.forEach(r => get(r).forEach(id => m[id] = (m[id] || 0) + 1)); return Object.entries(m).map(([id, v]) => ({ id, v })).sort((a, b) => b.v - a.v); };
+  const dW = d => `${avatar(d, 22)} ${dl(d)}`, cW = c => `${cFlag(c)}${cl(c, yi.y)}`;
+  YAW = [
+    { title: 'Driver of the Day', rows: cnt(r => r.dotd ? [r.dotd] : []).map(o => ({ v: o.v, who: dW(o.id) })), note: yi.y < 2016 ? 'Assegnato dal 2016' : '' },
+    { title: 'Fastest Lap', rows: cnt(r => r.fl && r.fl.d ? [r.fl.d] : []).map(o => ({ v: o.v, who: dW(o.id) })) },
+    { title: 'Fastest Pit Stop (scuderie)', rows: cnt(r => r.fstop && r.fstop.c ? [r.fstop.c] : []).map(o => ({ v: o.v, who: cW(o.id) })) },
+    { title: 'Fastest Pit Stop più veloce', rows: rs.filter(r => r.fstop && r.fstop.ms).map(r => ({ v: r.fstop.ms, who: `${r.fstop.c ? cW(r.fstop.c) : ''} <span class="small">${dl(r.fstop.d)}</span> <a class="lk mut small" data-race="${r.key}">${esc(short(r))}</a>` })).sort((a, b) => a.v - b.v), fmt: v => fmtStop(v), note: 'Tempo da fermo per il cambio gomme' },
+  ].filter(o => o.rows.length);
+  if (!YAW.length) return '';
+  return `<h2>Premi della stagione</h2><div class="recgrid">${YAW.map((o, k) => { const top = o.rows.filter(r => r.v === o.rows[0].v);
+    return `<div class="card reccard rec1" data-yaw="${k}" title="Tocca per la classifica completa"><h3>${o.title}</h3>${o.note ? `<p class="small mut" style="margin:-4px 0 6px">${o.note}</p>` : ''}<div class="recwin">${top.slice(0, 6).map(r => `<div class="rwho">${r.who}</div>`).join('')}</div><div class="recv"><b>${o.fmt ? o.fmt(top[0].v) : top[0].v}</b>${top.length > 1 ? ` <span class="small mut">· ${top.length} a pari merito</span>` : ''}</div><div class="recmore small">Classifica completa (${o.rows.length}) ›</div></div>`; }).join('')}</div>`;
+}
+function bindYearAwards(root) {
+  root.querySelectorAll('[data-yaw]').forEach(c => c.onclick = e => { if (e.target.closest('a,button')) return; const o = YAW[+c.dataset.yaw]; let pos = 0, prev;
+    showModal(`<h2 style="margin-top:0">${o.title}</h2>${o.note ? `<p class="small mut">${o.note}</p>` : ''}<div class="scroll" style="max-height:70vh"><table class="t"><thead><tr><th class="n">#</th><th></th><th class="n">${o.fmt ? 'Tempo' : 'Volte'}</th></tr></thead><tbody>${o.rows.map((r, i) => { if (r.v !== prev) { pos = i + 1; prev = r.v; } return `<tr class="${pos <= 3 ? 'rtop' + pos : ''}"><td class="n"><b>${pos}</b></td><td>${r.who}</td><td class="n">${o.fmt ? o.fmt(r.v) : r.v}</td></tr>`; }).join('')}</tbody></table></div>`); });
+}
 function pageRecords(main) {
   const st = tabState.rec || (tabState.rec = { tab: 'd', n: 10 });
   const ageTxt = days => { const y = Math.floor(days / 365.2425), d = Math.round(days - y * 365.2425); return `${y} anni e ${d} giorni`; };
@@ -3785,6 +3804,8 @@ function pageRecords(main) {
   const seasonRank = (per, k, who) => { const out = []; for (const id of Object.keys(per)) for (const [y, o] of Object.entries(per[id])) if (o[k] > 0) out.push({ v: o[k], who: `${who(id)} <span class="mut small">${y}</span>` }); return out.sort((a, b) => b.v - a.v); };
   const seasonPct = (per, k, who, minR) => { const out = []; for (const id of Object.keys(per)) for (const [y, o] of Object.entries(per[id])) if (o.races >= minR && M.yi[y]?.complete) out.push({ v: o[k] / o.races * 100, who: `${who(id)} <span class="mut small">${y}</span>` }); return out.filter(o => o.v > 0).sort((a, b) => b.v - a.v); };
   const pctF = v => fmtPct(v), int = v => v, ptsF = v => fmtPts(v);
+  // conteggi per stagione (Driver of the Day, Fastest Pit Stop…): una riga per chi + anno
+  const perSeason = (get, who) => { const m = {}; for (const r of races) for (const id of get(r)) { const k = id + '|' + r.y; m[k] = (m[k] || 0) + 1; } return Object.entries(m).map(([k, v]) => { const [id, y] = k.split('|'); return { v, who: `${who(id)} <span class="mut small">${y}</span>` }; }).sort((a, b) => b.v - a.v); };
   let html = '';
   if (st.tab === 'd') html = [
     list('Mondiali vinti', rank(D_, d => dc(d).titles, dW), int),
@@ -3834,6 +3855,11 @@ function pageRecords(main) {
     list('% vittorie in una stagione (piloti)', seasonPct(M.dy, 'wins', dW, 5), pctF, 'Stagioni concluse, almeno 5 gare'),
     list('Più vittorie in una stagione (scuderie)', seasonRank(M.cy, 'wins', cW), int),
     list('Più doppiette in una stagione', seasonRank(M.cy, 'dbl', cW), int),
+    list('Più Fastest Lap in una stagione (piloti)', seasonRank(M.dy, 'fl', dW), int),
+    list('Più Driver of the Day in una stagione', perSeason(r => r.dotd ? [r.dotd] : [], dW), int, 'Assegnato dal 2016'),
+    list('Più Fastest Pit Stop in una stagione (scuderie)', perSeason(r => r.fstop && r.fstop.c ? [r.fstop.c] : [], cW), int),
+    list('Fastest Pit Stop più veloce', fpsBest, v => fmtStop(v), 'Tempo da fermo per il cambio gomme'),
+    list('Fastest Lap più veloce (in gara)', races.filter(r => r.fl && r.fl.t).map(r => ({ v: lapMs(r.fl.t), t: r.fl.t, who: `${dW(r.fl.d)} <a class="lk mut small" data-race="${r.key}">${esc(short(r))} ${r.y}</a>` })).filter(o => o.v < Infinity).sort((a, b) => a.v - b.v), (v, r) => r.t, 'Il giro più veloce in gara di sempre, su qualsiasi circuito'),
     list('Titoli vinti con più anticipo', M.years.map(y => M.yi[y].clD).filter(c => c && !c.last).map(c => ({ v: c.left, who: `${dW(c.id)} <span class="mut small">${c.r.y}</span>` })).sort((a, b) => b.v - a.v), v => `${v} ${v === 1 ? 'gara' : 'gare'}`),
     list('Vittorie partendo più indietro', races.map(r => r.podium[0][0]).filter(x => x && x.g > 0).map(x => ({ x })).map((o, i) => o).concat([]).length ? races.filter(r => r.podium[0][0] && r.podium[0][0].g > 0).map(r => ({ v: r.podium[0][0].g, who: `${dW(r.podium[0][0].d)} <span class="mut small">${esc(r.name)} ${r.y}</span>` })).sort((a, b) => b.v - a.v) : [], v => v + 'ª posizione'),
   ].join('');
@@ -5113,7 +5139,7 @@ Sync.onSeason = () => {
   }, 1500);
 };
 // ---------- PWA ----------
-const APP_VERSION = '2.122.0';
+const APP_VERSION = '2.124.0';
 let deferredPrompt = null;
 const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 async function doInstall() {
