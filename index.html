@@ -1780,7 +1780,7 @@ async function readXlsx(buf) {
 
 // ---- formato del file di un anno ----
 const XL_SHEETS = {
-  gare: { name: 'Gare', cols: [['round', 'Round', 8], ['name', 'Gran Premio', 28], ['date', 'Data', 12], ['circuit', 'Circuito', 34], ['city', 'Città', 16], ['country', 'Nazione', 16], ['sprint', 'Sprint', 8], ['dotd', 'Driver of the Day', 24], ['dotdteam', 'Scuderia Driver of the Day', 22], ['pitd', 'Fastest Pit Stop – Pilota', 26], ['pitc', 'Fastest Pit Stop – Scuderia', 24], ['pitt', 'Fastest Pit Stop – Tempo (s)', 14]] },
+  gare: { name: 'Gare', cols: [['round', 'Round', 8], ['name', 'Gran Premio', 28], ['date', 'Data', 12], ['circuit', 'Circuito', 34], ['city', 'Città', 16], ['country', 'Nazione', 16], ['sprint', 'Sprint', 8], ['dotd', 'Driver of the Day', 24], ['dotdteam', 'Scuderia Driver of the Day', 22], ['pitd', 'Fastest Pit Stop – Pilota', 26], ['pitc', 'Fastest Pit Stop – Scuderia', 24], ['pitt', 'Fastest Pit Stop – Tempo (s)', 14], ['xpole', 'Pole position', 24], ['xwin', 'Vincitore', 24], ['xfld', 'Fastest Lap – Pilota', 24], ['xflc', 'Fastest Lap – Scuderia', 22], ['xflt', 'Fastest Lap – Tempo', 14], ['xfll', 'Fastest Lap – Giro', 10], ['xlaps', 'Giri', 7]] },
   ris: { name: 'Risultati', cols: [['round', 'Round', 8], ['session', 'Sessione', 10], ['pos', 'Pos', 6], ['num', 'N°', 6], ['driver', 'Pilota', 24], ['team', 'Scuderia', 22], ['laps', 'Giri', 6], ['time', 'Tempo / Stato', 18], ['grid', 'Griglia', 8], ['pts', 'Punti', 7], ['fl', 'Giro veloce', 12]] },
   qual: { name: 'Qualifiche', cols: [['round', 'Round', 8], ['pos', 'Pos', 6], ['num', 'N°', 6], ['driver', 'Pilota', 24], ['team', 'Scuderia', 22], ['q1', 'Q1', 11], ['q2', 'Q2', 11], ['q3', 'Q3', 11]] },
   cp: { name: 'Classifica Piloti', cols: [['pos', 'Pos', 6], ['driver', 'Pilota', 24], ['team', 'Scuderia', 26], ['pts', 'Punti', 8], ['wins', 'Vittorie', 9]] },
@@ -2003,7 +2003,39 @@ function calcStandings(s, kind) {
   return Object.keys(tot).sort((a, b) => tot[b] - tot[a] || (wins[b] || 0) - (wins[a] || 0) || (best[a] || 99) - (best[b] || 99))
     .map((id, i) => kind === 'd' ? { d: id, p: i + 1, pt: String(i + 1), pts: tot[id], w: wins[id] || 0, cs: [...(cs[id] || [])] } : { c: id, p: i + 1, pt: String(i + 1), pts: tot[id], w: wins[id] || 0 });
 }
-function exportYearXlsx(y) {
+// fogli in più solo per consultazione (non vengono letti quando si ricarica il file)
+function exportExtraSheets(y, s, of1) {
+  if (!s || typeof M === 'undefined') return [];
+  const races = M.races.filter(r => r.y === y).sort((a, b) => a.r - b.r), out = [];
+  const tm = (r, d) => { const z = r.res.concat(r.spr || []).find(q => q.d === d); return z ? cName(z.c) : ''; };
+  // giri veloci di ogni pilota, ordinati per tempo
+  const fl = [['Round', 'Gran Premio', 'Sessione', 'Pos', 'Pilota', 'Scuderia', 'Tempo', 'Giro']];
+  for (const r of races) for (const [lab, L] of [['Gara', r.res], ['Sprint', r.spr || []]]) {
+    const t = L.filter(x => x.fl && x.fl.t).map(x => ({ x, ms: lapMs(x.fl.t) })).sort((a, b) => a.ms - b.ms);
+    t.forEach((o, i) => fl.push([r.r, r.name, lab, i + 1, dName(o.x.d), cName(o.x.c), o.x.fl.t, o.x.fl.lap || '']));
+  }
+  if (fl.length > 1) out.push({ name: 'Giri veloci', rows: fl, widths: [8, 28, 10, 6, 24, 22, 12, 7] });
+  // tutti i pit stop
+  const ps = [['Round', 'Gran Premio', 'Pilota', 'Scuderia', 'Sosta n°', 'Giro', 'Tempo da fermo (s)', 'Tempo in corsia box (s)', 'Fonte']];
+  for (const r of races) {
+    const st = s.stops && s.stops[r.r], jp = s.pit && s.pit[r.r];
+    if (st && st.all.length) st.all.slice().sort((a, b) => a[1] - b[1]).forEach(p => ps.push([r.r, r.name, dName(p[0]), tm(r, p[0]), '', p[1], Math.round(p[2]) / 1000, p[3] ? Math.round(p[3]) / 1000 : '', 'OpenF1']));
+    else if (jp && jp.all && jp.all.length) jp.all.slice().sort((a, b) => a[2] - b[2]).forEach(p => ps.push([r.r, r.name, dName(p[0]), tm(r, p[0]), p[1], p[2], '', Math.round(p[3]) / 1000, 'Jolpica']));
+    if (s.fstop && s.fstop[r.r]) { const f = s.fstop[r.r]; ps.push([r.r, r.name, dName(f.d), tm(r, f.d), '', f.lap || '', Math.round(f.ms) / 1000, '', 'Inserito a mano (più veloce)']); }
+  }
+  if (ps.length > 1) out.push({ name: 'Pit stop', rows: ps, widths: [8, 28, 24, 22, 9, 6, 16, 18, 22] });
+  // tutti i momenti salienti (automatici, OpenF1 e inseriti a mano) con i link allegati
+  const TL = typeof TAGL !== 'undefined' ? TAGL : {};
+  const ms = [['Round', 'Gran Premio', 'Sessione', 'Tipo', 'Descrizione', 'Piloti', 'Scuderie', 'Fonte', 'Link']];
+  for (const r of races) {
+    const evs = (typeof raceHighlights === 'function' ? raceHighlights(r) : []).concat(typeof extraEvents === 'function' ? extraEvents(r, of1[r.key] || null) : []);
+    for (const e of evs) { const L = (typeof EVL !== 'undefined' && EVL[`${r.key}|${e.t}|${e.x}`]) || [];
+      ms.push([r.r, r.name, e.s || '', TL[e.t] || e.t || '', e.x || '', (e.ds || []).map(dName).join(', '), (e.cs || []).map(cName).join(', '), e.src || (e.man ? 'Inserito a mano' : 'Automatico'), L.map(o => o.u).join('  ')]); }
+  }
+  if (ms.length > 1) out.push({ name: 'Momenti salienti', rows: ms, widths: [8, 28, 12, 18, 80, 30, 22, 16, 50] });
+  return out;
+}
+function exportYearXlsx(y, of1 = {}) {
   const s = D.seasons[y], E = D.enrich || {};
   const H = key => XL_SHEETS[key].cols.map(c => c[1]), W = key => XL_SHEETS[key].cols.map(c => c[2]);
   const ptxt = x => isNum(x) ? x.p : ({ R: 'Rit', N: 'NC', W: 'NP', D: 'SQ', E: 'Escl', F: 'NQ' }[x.pt] || x.pt);
@@ -2016,6 +2048,7 @@ function exportYearXlsx(y) {
     ['Qualifiche, Classifica Piloti, Classifica Scuderie, Piloti e Scuderie sono facoltativi. Se mancano le classifiche, l\'app le calcola sommando i punti.'],
     ['Piloti: abbreviazione (3 lettere), data di nascita, nazionalità (es. Italiana) e luogo di nascita (Città, Nazione). Scuderie: vettura (nome della monoposto), motorista/motore, gomme, nazionalità.'],
     ['Eventi: penalità, incidenti, direttive tecniche, pioggia, ritardi. Una riga per evento con round, sessione (Qualifiche, Sprint, Gara o Weekend), tipo (Incidente, Penalità, Direttiva tecnica, Pioggia, Ritardo, Bandiera, Altro) e descrizione.'],
+    ['I fogli Giri veloci, Pit stop e Momenti salienti servono solo per consultazione: vengono ignorati quando ricarichi il file (per aggiungere eventi usa il foglio Eventi).'],
     ['Il foglio Istruzioni viene ignorato durante l\'import. Caricando il file, i dati della stagione vengono sostituiti da quelli del file.'],
   ] });
   const gare = [H('gare')], ris = [H('ris')], qual = [H('qual')], cp = [H('cp')], cs = [H('cs')], pil = [H('pil')], scu = [H('scu')], evx = [H('ev')];
@@ -2028,7 +2061,10 @@ function exportYearXlsx(y) {
       gare.push([r, R.name || '', fmtDate(R.date), C.name || '', C.loc || '', C.country ? ctyIt(C.country) : '', (R.sprintDate || (s.spr && s.spr[r] && s.spr[r].length)) ? 'sì' : '', s.dotd && s.dotd[r] ? dName(s.dotd[r]) : '', ...(() => { const res = (s.res && s.res[r]) || [], tm = d => { const z = res.find(q => q.d === d); return z ? cName(z.c) : ''; };
         const dd = s.dotd && s.dotd[r]; let fs = s.fstop && s.fstop[r] ? { d: s.fstop[r].d, ms: s.fstop[r].ms } : null;
         if (!fs && s.stops && s.stops[r] && s.stops[r].all.length) { const b = s.stops[r].all.slice().sort((a, b) => a[2] - b[2])[0]; fs = { d: b[0], ms: b[2] }; }
-        return [dd ? tm(dd) : '', fs ? dName(fs.d) : '', fs ? tm(fs.d) : '', fs ? Math.round(fs.ms) / 1000 : '']; })()]);
+        const MR = (typeof M !== 'undefined' && M.races) ? M.races.find(z => z.y === y && z.r === r) : null;
+        return [dd ? tm(dd) : '', fs ? dName(fs.d) : '', fs ? tm(fs.d) : '', fs ? Math.round(fs.ms) / 1000 : '',
+          MR && MR.pole ? dName(MR.pole.d) : '', MR && MR.podium[0][0] ? dName(MR.podium[0][0].d) : '',
+          MR && MR.fl ? dName(MR.fl.d) : '', MR && MR.fl ? tm(MR.fl.d) : '', MR && MR.fl ? (MR.fl.t || '') : '', MR && MR.fl && MR.fl.lap ? MR.fl.lap : '', MR && MR.laps ? MR.laps : '']; })()]);
       for (const [lab, L] of [['Gara', s.res], ['Sprint', s.spr]]) for (const x of (L && L[r]) || [])
         ris.push([r, lab, ptxt(x), x.n ? (isNaN(+x.n) ? x.n : +x.n) : '', dName(x.d), cName(x.c), x.l || 0, isNum(x) ? (x.t || (x.s !== 'Finished' ? x.s : '')) : x.s, x.g == null ? '' : (x.g === 0 ? 'Box' : x.g), x.pts, x.fl && x.fl.t ? x.fl.t : '']);
       for (const x of (s.q && s.q[r]) || []) qual.push([r, x.p ?? '', x.n ? (isNaN(+x.n) ? x.n : +x.n) : '', dName(x.d), x.c ? cName(x.c) : '', x.q1 || x.t || '', x.q2 || '', x.q3 || '']);
@@ -2041,6 +2077,7 @@ function exportYearXlsx(y) {
     for (const c of cs2) { const o = D.cons[c] || {}, en = E.ent && E.ent[y + '|' + c]; const ov = (s && s.ent && s.ent[c]) || {}; scu.push([cName(c), ov.ch != null ? ov.ch : (en ? en.ch.join(' / ') : ''), ov.em != null ? ov.em : (en ? (en.em && en.em.length ? en.em : en.en).join(' / ') : ''), en ? en.ty.join(' / ') : '', natIt(o.nat)]); }
   }
   sheets.push({ name: 'Gare', rows: gare, widths: W('gare') }, { name: 'Risultati', rows: ris, widths: W('ris') }, { name: 'Qualifiche', rows: qual, widths: W('qual') },
+    ...exportExtraSheets(y, s, of1),
     { name: 'Classifica Piloti', rows: cp, widths: W('cp') }, { name: 'Classifica Scuderie', rows: cs, widths: W('cs') }, { name: 'Piloti', rows: pil, widths: W('pil') }, { name: 'Scuderie', rows: scu, widths: W('scu') }, { name: 'Eventi', rows: evx, widths: W('ev') });
   return writeXlsx(sheets);
 }
@@ -4345,8 +4382,9 @@ function pumpQueue() {
 }
 
 // ---------- Excel ----------
-function downloadYearXlsx(y) {
-  const blob = exportYearXlsx(y);
+async function downloadYearXlsx(y) {
+  const of1 = {}; for (const r of M.races.filter(z => z.y === y && z.y >= 2023)) { try { const c = await Store.get('of1:' + r.key); if (c) of1[r.key] = c; } catch (e) {} }
+  const blob = exportYearXlsx(y, of1);
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `F1-History-${y}.xlsx`; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
 }
@@ -4552,7 +4590,7 @@ Sync.onSeason = () => {
   }, 1500);
 };
 // ---------- PWA ----------
-const APP_VERSION = '2.39.1';
+const APP_VERSION = '2.40.0';
 let deferredPrompt = null;
 const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 async function doInstall() {
