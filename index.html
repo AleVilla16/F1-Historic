@@ -3784,6 +3784,30 @@ function bindYearAwards(root) {
   root.querySelectorAll('[data-yaw]').forEach(c => c.onclick = e => { if (e.target.closest('a,button')) return; const o = YAW[+c.dataset.yaw]; let pos = 0, prev;
     showModal(`<h2 style="margin-top:0">${o.title}</h2>${o.note ? `<p class="small mut">${o.note}</p>` : ''}<div class="scroll" style="max-height:70vh"><table class="t"><thead><tr><th class="n">#</th><th></th><th class="n">${o.fmt ? 'Tempo' : 'Volte'}</th></tr></thead><tbody>${o.rows.map((r, i) => { if (r.v !== prev) { pos = i + 1; prev = r.v; } return `<tr class="${pos <= 3 ? 'rtop' + pos : ''}"><td class="n"><b>${pos}</b></td><td>${r.who}</td><td class="n">${o.fmt ? o.fmt(r.v) : r.v}</td></tr>`; }).join('')}</tbody></table></div>`); });
 }
+// caricamento in blocco: SIGLA_ANNO = carta, SIGLA = foto pilota, Scuderia_ANNO = immagine scuderia
+async function bulkImages(files, prog) {
+  const ok = [], bad = []; let i = 0, chP = false, chC = false, chT = false;
+  const drvByAbbr = (ab, y) => Object.keys(D.drivers).filter(d => dAbbr(d).toUpperCase() === ab && (!y || (M.dy[d] && M.dy[d][y])));
+  for (const f of files) { i++; prog && prog(i, files.length);
+    const base = f.name.replace(/\.[^.]+$/, '').trim(), m = base.match(/^(.*?)[_\- ]+(\d{4})$/);
+    try {
+      if (m) { const nm = m[1].replace(/_/g, ' ').trim(), y = +m[2];
+        const ds = drvByAbbr(nm.toUpperCase(), y);
+        if (ds.length === 1) { CARDPH[ds[0] + '|' + y] = await photoFromFile(f); chC = true; ok.push(`${f.name} → carta di ${dName(ds[0])} ${y}`); continue; }
+        const k = normName(nm), cs = Object.keys(M.cy).filter(c => M.cy[c][y]);
+        const c = cs.find(c => normName(cName(c)) === k) || cs.find(c => normName(cName(c)).startsWith(k) || k.startsWith(normName(cName(c)))) || cs.find(c => normName(cName(c)).includes(k));
+        if (c) { const raw = await imgFromFile(f); (TEAMRAW[c] || (TEAMRAW[c] = {}))[y] = raw; let cut = raw; try { cut = await removeBg(raw); } catch (e) {} (TEAMIMG[c] || (TEAMIMG[c] = {}))[y] = cut; chT = true; ok.push(`${f.name} → immagine ${cName(c)} ${y}`); continue; }
+        bad.push(`${f.name}: nessun pilota con sigla "${nm.toUpperCase()}" né scuderia "${nm}" nel ${y}`); continue; }
+      let ds = drvByAbbr(base.toUpperCase());
+      if (!ds.length) ds = Object.keys(D.drivers).filter(d => normName(dName(d)) === normName(base) || normName((D.drivers[d] || {}).fn || '') === normName(base));
+      if (ds.length) { const d = ds.sort((a, b) => Math.max(0, ...((M.dc[b] || {}).years || [0])) - Math.max(0, ...((M.dc[a] || {}).years || [0])))[0];
+        PHOTOS[d] = await photoFromFile(f); chP = true; ok.push(`${f.name} → foto di ${dName(d)}`); continue; }
+      bad.push(`${f.name}: nessun pilota con sigla "${base.toUpperCase()}"`);
+    } catch (e) { bad.push(`${f.name}: immagine non leggibile`); }
+  }
+  if (chP) await savePhotos(); if (chC) await Store.set('cardph', CARDPH); if (chT) await saveTeamImgs();
+  return { ok, bad };
+}
 function pageRecords(main) {
   const st = tabState.rec || (tabState.rec = { tab: 'd', n: 10 });
   const ageTxt = days => { const y = Math.floor(days / 365.2425), d = Math.round(days - y * 365.2425); return `${y} anni e ${d} giorni`; };
@@ -5044,6 +5068,10 @@ function pageSettings(main) {
    <button class="btn" id="xlExp">Scarica modello / esporta anno</button>
    <label class="btn pri">Carica Excel <input type="file" id="xlImp" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden></label></div>
    <div id="xlMsg" class="small" style="margin-top:8px"></div></div>
+  <div class="card"><h2 style="margin-top:0">Foto e immagini in blocco</h2>
+   <p class="small">Scegli più immagini insieme: l'app le assegna in base al <b>nome del file</b>.</p>
+   <ul class="small" style="margin:6px 0 10px;padding-left:18px;line-height:1.6"><li><b>VER_2026.png</b> → foto della carta di Verstappen per il 2026 (sigla del pilota _ anno)</li><li><b>VER.png</b> → foto del pilota, usata ovunque (sigla del pilota)</li><li><b>Ferrari_2026.png</b> → immagine della scuderia per il 2026 (nome della scuderia _ anno), con lo sfondo tolto in automatico</li></ul>
+   <div class="row"><label class="btn pri">Carica immagini<input type="file" id="bulkImg" accept="image/*" multiple hidden></label></div><div id="bulkMsg" class="small" style="margin-top:8px"></div></div>
   <div class="card"><h2 style="margin-top:0">Vetture e motoristi (tutti gli anni)</h2>
    <p class="small">Un solo file Excel con vettura e motorista di ogni scuderia in ogni stagione scaricata. Modificalo e ricaricalo per aggiornare tutti gli anni insieme.</p>
    <div class="row"><button class="btn" id="carExp">Esporta vetture e motoristi</button><label class="btn pri">Importa vetture e motoristi <input type="file" id="carImp" accept=".xlsx" hidden></label></div>
@@ -5061,6 +5089,9 @@ function pageSettings(main) {
   <div class="card"><h2 style="margin-top:0">Ripristino</h2><button class="btn" id="bClr">Cancella tutti i dati salvati</button> <span id="clrmsg" class="small"></span></div>`;
   if ($('#bInst')) $('#bInst').onclick = doInstall;
   $('#xlExp').onclick = () => downloadYearXlsx(+$('#xlYear').value);
+  $('#bulkImg').onchange = async e => { const fs = [...e.target.files]; if (!fs.length) return; const m = $('#bulkMsg'); m.innerHTML = `Elaboro ${fs.length} immagini…`;
+    const r = await bulkImages(fs, (i, n) => { m.innerHTML = `Elaboro ${i}/${n}…`; }); e.target.value = '';
+    m.innerHTML = `<b>${r.ok.length} immagini caricate</b>${r.ok.length ? '<ul style="margin:4px 0;padding-left:18px">' + r.ok.map(x => `<li>${esc(x)}</li>`).join('') + '</ul>' : ''}${r.bad.length ? `<div style="color:#ff8080;margin-top:4px">Non riconosciute (${r.bad.length}):</div><ul style="margin:4px 0;padding-left:18px">${r.bad.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}`; };
   $('#carExp').onclick = () => { const blob = exportCarsXlsx(); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'F1-History-vetture-motoristi.xlsx'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); };
   $('#carImp').onchange = async e => { const f = e.target.files[0]; if (!f) return; const m = $('#carMsg'); m.textContent = 'Importazione…'; try { const r = await importCarsXlsx(f); ENG = null; m.innerHTML = `<span style="color:var(--green)">Aggiornate ${r.n} scuderie in ${r.years} stagioni.</span>${r.miss ? ` <span class="mut">${r.miss} righe ignorate (anno non scaricato o scuderia non trovata).</span>` : ''}`; } catch (err) { m.textContent = 'Errore: ' + err.message; } e.target.value = ''; };
   $('#ledAll').onclick = ledDownloadAll; $('#ledStop').onclick = () => { LED.stop = true; }; ledRefresh();
@@ -5147,7 +5178,7 @@ Sync.onSeason = () => {
   }, 1500);
 };
 // ---------- PWA ----------
-const APP_VERSION = '2.125.0';
+const APP_VERSION = '2.126.0';
 let deferredPrompt = null;
 const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 async function doInstall() {
