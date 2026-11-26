@@ -1775,7 +1775,7 @@ async function readXlsx(buf) {
 
 // ---- formato del file di un anno ----
 const XL_SHEETS = {
-  gare: { name: 'Gare', cols: [['round', 'Round', 8], ['name', 'Gran Premio', 28], ['date', 'Data', 12], ['circuit', 'Circuito', 34], ['city', 'Città', 16], ['country', 'Nazione', 16], ['sprint', 'Sprint', 8], ['dotd', 'Pilota del giorno', 24], ['dotdteam', 'Scuderia pilota del giorno', 22], ['pitd', 'Pit stop più veloce – Pilota', 26], ['pitc', 'Pit stop più veloce – Scuderia', 24], ['pitt', 'Pit stop più veloce – Tempo (s)', 14]] },
+  gare: { name: 'Gare', cols: [['round', 'Round', 8], ['name', 'Gran Premio', 28], ['date', 'Data', 12], ['circuit', 'Circuito', 34], ['city', 'Città', 16], ['country', 'Nazione', 16], ['sprint', 'Sprint', 8], ['dotd', 'Driver of the Day', 24], ['dotdteam', 'Scuderia Driver of the Day', 22], ['pitd', 'Fastest Pit Stop – Pilota', 26], ['pitc', 'Fastest Pit Stop – Scuderia', 24], ['pitt', 'Fastest Pit Stop – Tempo (s)', 14]] },
   ris: { name: 'Risultati', cols: [['round', 'Round', 8], ['session', 'Sessione', 10], ['pos', 'Pos', 6], ['num', 'N°', 6], ['driver', 'Pilota', 24], ['team', 'Scuderia', 22], ['laps', 'Giri', 6], ['time', 'Tempo / Stato', 18], ['grid', 'Griglia', 8], ['pts', 'Punti', 7], ['fl', 'Giro veloce', 12]] },
   qual: { name: 'Qualifiche', cols: [['round', 'Round', 8], ['pos', 'Pos', 6], ['num', 'N°', 6], ['driver', 'Pilota', 24], ['team', 'Scuderia', 22], ['q1', 'Q1', 11], ['q2', 'Q2', 11], ['q3', 'Q3', 11]] },
   cp: { name: 'Classifica Piloti', cols: [['pos', 'Pos', 6], ['driver', 'Pilota', 24], ['team', 'Scuderia', 26], ['pts', 'Punti', 8], ['wins', 'Vittorie', 9]] },
@@ -1785,12 +1785,15 @@ const XL_SHEETS = {
   scu: { name: 'Scuderie', cols: [['team', 'Scuderia', 24], ['chassis', 'Vettura', 18], ['engine', 'Motorista', 24], ['tyres', 'Gomme', 12], ['nat', 'Nazionalità', 16]] },
 };
 const XL_ALIAS = {
+  dotd: ['pilotadelgiorno', 'driveroftheday', 'dotd'], dotdteam: ['scuderiapilotadelgiorno', 'scuderiadriveroftheday', 'driverofthedayscuderia'],
+  pitd: ['pitstoppiuvelocepilota', 'fastestpitstoppilota', 'pitstoppilota', 'sostapiuvelocepilota'], pitc: ['pitstoppiuvelocescuderia', 'fastestpitstopscuderia', 'pitstopscuderia', 'sostapiuvelocescuderia'],
+  pitt: ['fastestpitstoptempos', 'pitstoppiuvelocetempos', 'pitstoppiuvelocetempo', 'fastestpitstoptempos', 'fastestpitstoptempo', 'pitstoptempo', 'sostapiuvelocetempo'],
   round: ['round', 'gp', 'garan'], name: ['granpremio', 'nome', 'gara', 'race'], date: ['data', 'date'], circuit: ['circuito', 'circuit', 'pista'], city: ['citta', 'city', 'localita'], country: ['nazione', 'paese', 'country'], sprint: ['sprint'],
   session: ['sessione', 'session', 'tipo'], pos: ['pos', 'posizione', 'position'], num: ['n', 'no', 'numero', 'num', 'number'], driver: ['pilota', 'driver'], team: ['scuderia', 'team', 'costruttore'], laps: ['giri', 'laps'],
   time: ['tempostato', 'tempo', 'time', 'timeretired', 'stato'], grid: ['griglia', 'grid'], pts: ['punti', 'pts', 'points'], fl: ['giroveloce', 'fastestlap', 'fl'], q1: ['q1'], q2: ['q2'], q3: ['q3'], wins: ['vittorie', 'wins'],
   abbr: ['abbreviazione', 'abbr', 'sigla', 'codice'], dob: ['datadinascita', 'nascita', 'dob'], nat: ['nazionalita', 'nationality'], pob: ['luogodinascita', 'birthplace'],
   evtype: ['tipo', 'type', 'categoria'], text: ['descrizione', 'evento', 'testo', 'text'], photo: ['fotourl', 'foto', 'photo', 'immagine'],
-  chassis: ['telaio', 'chassis', 'auto'], engine: ['powerunitmotore', 'powerunit', 'motore', 'engine'], tyres: ['gomme', 'tyres', 'pneumatici'],
+  chassis: ['vettura', 'telaio', 'chassis', 'auto', 'monoposto'], engine: ['motorista', 'powerunitmotore', 'powerunit', 'motore', 'engine', 'motori'], tyres: ['gomme', 'tyres', 'pneumatici'],
 };
 function sheetRecords(rows, keys) {
   if (!rows || !rows.length) return [];
@@ -1837,7 +1840,7 @@ function posCode(v) {
   if (/^(NC|N)$/.test(s)) return { pt: 'N', s: 'Non classificato' };
   if (/^(DNF|RIT|R|RET|RITIRATO)$/.test(s)) return { pt: 'R', s: 'Ritirato' };
   if (/^(DNS|NP|W|NON PARTITO)$/.test(s)) return { pt: 'W', s: 'Did not start' };
-  if (/^(DSQ|DQ|SQUAL|D|SQUALIFICATO)$/.test(s)) return { pt: 'D', s: 'Squalificato' };
+  if (/^(DSQ|DQ|SQ|SQUAL|D|SQUALIFICATO)$/.test(s)) return { pt: 'D', s: 'Squalificato' };
   if (/^(DNQ|NQ|F|DNPQ|NPQ)$/.test(s)) return { pt: 'F', s: 'Did not qualify' };
   if (/^(EX|ESCL|E|EXCL)$/.test(s)) return { pt: 'E', s: 'Escluso' };
   return { pt: 'R', s: s || 'Ritirato' };
@@ -1998,12 +2001,12 @@ function calcStandings(s, kind) {
 function exportYearXlsx(y) {
   const s = D.seasons[y], E = D.enrich || {};
   const H = key => XL_SHEETS[key].cols.map(c => c[1]), W = key => XL_SHEETS[key].cols.map(c => c[2]);
-  const ptxt = x => isNum(x) ? x.p : ({ R: 'Rit', N: 'NC', W: 'NP', D: 'Squal', E: 'Escl', F: 'NQ' }[x.pt] || x.pt);
+  const ptxt = x => isNum(x) ? x.p : ({ R: 'Rit', N: 'NC', W: 'NP', D: 'SQ', E: 'Escl', F: 'NQ' }[x.pt] || x.pt);
   const sheets = [];
   sheets.push({ name: 'Istruzioni', noHeader: true, wrap: true, widths: [110], rows: [
     [`F1 History – stagione ${y}`], ['Compila o modifica i fogli e ricarica il file in F1 History (Impostazioni → Excel per anno, oppure dalla pagina dell\'anno).'],
     ['Gare: un rigo per gara, con numero di round, nome del Gran Premio, data (gg/mm/aaaa), circuito, città, nazione e "sì" nella colonna Sprint se c\'è la gara sprint.'],
-    ['Risultati: un rigo per pilota e per gara. Sessione = Gara oppure Sprint. Pos = numero, oppure Rit, NC, NP (non partito), Squal, NQ (non qualificato).'],
+    ['Risultati: un rigo per pilota e per gara. Sessione = Gara oppure Sprint. Pos = numero, oppure Rit, NC, NP (non partito), SQ (squalificato), NQ (non qualificato).'],
     ['Pilota: nome e cognome (es. Lando Norris). Scuderia: nome della scuderia. I nomi già presenti nell\'app vengono riconosciuti; quelli nuovi vengono creati.'],
     ['Qualifiche, Classifica Piloti, Classifica Scuderie, Piloti e Scuderie sono facoltativi. Se mancano le classifiche, l\'app le calcola sommando i punti.'],
     ['Piloti: abbreviazione (3 lettere), data di nascita, nazionalità (es. Italiana) e luogo di nascita (Città, Nazione). Scuderie: vettura (nome della monoposto), motorista/motore, gomme, nazionalità.'],
@@ -4374,7 +4377,7 @@ Sync.onSeason = () => {
   }, 1500);
 };
 // ---------- PWA ----------
-const APP_VERSION = '2.35.1';
+const APP_VERSION = '2.35.2';
 let deferredPrompt = null;
 const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 async function doInstall() {
