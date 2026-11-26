@@ -4840,7 +4840,7 @@ Sync.onSeason = () => {
   }, 1500);
 };
 // ---------- PWA ----------
-const APP_VERSION = '2.78.0';
+const APP_VERSION = '2.79.0';
 let deferredPrompt = null;
 const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 async function doInstall() {
@@ -5158,16 +5158,23 @@ function bindCardEditor(kind, id, y, AT, reopen, r, W) {
   f.addEventListener('input', live);
   $('#ceOpen').onclick = () => { f.hidden = false; $('#ceOpen').hidden = true; };
   $('#ceCancel').onclick = () => reopen();
-  if ($('#ceReset')) $('#ceReset').onclick = () => { delete CARDOV[key]; cardovSave(); reopen(); if (/^(pilota|scuderia)-/.test(page)) route(); };
+  if ($('#ceReset')) $('#ceReset').onclick = () => { delete CARDOV[key]; cardovSave(); reopen(); refreshAfterCard(); };
   f.onsubmit = e => { e.preventDefault(); const o = {};
     // si salvano tutti i valori: da quel momento sono i valori della carta
     for (const [k] of AT) { const inp = f.elements[k], v = Math.round(+inp.value); o[k] = inp.value !== '' && isFinite(v) ? Math.max(1, Math.min(99, v)) : (r.calc && r.calc[k] != null ? r.calc[k] : r[k]); }
     CARDOV[key] = o;
-    cardovSave(); reopen(); if (/^(pilota|scuderia)-/.test(page)) route(); };
+    cardovSave(); reopen(); refreshAfterCard(); };
 }
 
 // OVR più alto in carriera di un pilota
 function bestOvr(d) { let b = null; for (const y of Object.keys(M.dy[d] || {}).map(Number)) { const r = driverRating(d, y); if (r && (!b || r.ovr > b.ovr)) b = { ovr: r.ovr, y }; } return b; }
+
+// dopo il salvataggio di una carta ridisegna la schermata sotto la finestra, mantenendo lo scorrimento
+function refreshAfterCard() {
+  const y = window.scrollY, vg = [...document.querySelectorAll('#main .vg')].map(v => [v.scrollTop, v.scrollLeft]);
+  route();
+  requestAnimationFrame(() => { window.scrollTo(0, y); document.querySelectorAll('#main .vg').forEach((v, i) => { if (vg[i]) { v.scrollTop = vg[i][0]; v.scrollLeft = vg[i][1]; v.dispatchEvent(new Event('scroll')); } }); });
+}
 
 }
 
