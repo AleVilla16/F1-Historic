@@ -5330,7 +5330,7 @@ Sync.onSeason = () => {
   }, 1500);
 };
 // ---------- PWA ----------
-const APP_VERSION = '2.137.0';
+const APP_VERSION = '2.138.0';
 let deferredPrompt = null;
 const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 async function doInstall() {
@@ -5422,6 +5422,8 @@ async function init() {
     if (t.id === 'newdata') { $('#newdata').hidden = true; route(); }
   });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); $('nav.menu').classList.remove('open'); $('#menubtn').setAttribute('aria-expanded', 'false'); document.body.classList.remove('navopen'); } });
+  // all'apertura dell'app si parte sempre dalla Home
+  if ((location.hash || '#home') !== '#home') history.replaceState(null, '', location.pathname + location.search + '#home');
   window.addEventListener('hashchange', route);
   const ok = await Store.open();
   if (!ok) $('#main').insertAdjacentHTML('beforebegin', '<div class="banner" style="margin:10px">Questo browser non permette di salvare i dati (IndexedDB non disponibile): verranno riscaricati a ogni apertura.</div>');
